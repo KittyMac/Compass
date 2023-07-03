@@ -14,34 +14,6 @@ import Spanker
 @usableFromInline let partAny: HalfHitch = ".";
 @usableFromInline let partDebug: HalfHitch = "DEBUG";
 
-fileprivate var regexCache: [Hitch: NSRegularExpression] = [:]
-fileprivate var regexCacheLock = NSLock()
-fileprivate func getCachedRegex(_ pattern: Hitch) -> NSRegularExpression? {
-    regexCacheLock.lock(); defer { regexCacheLock.unlock() }
-    
-    guard pattern.first == .forwardSlash && pattern.last == .forwardSlash else {
-        Compass.print("Regex string must start and end with \"/\": \(pattern)")
-        return nil
-    }
-    
-    guard let subpattern = pattern.substring(1, pattern.count-1) else {
-        Compass.print("Failed to extract subpattern from regex: \(pattern)")
-        return nil
-    }
-    
-    guard let regex = regexCache[pattern] else {
-        do {
-            let regex = try NSRegularExpression(pattern: subpattern.description, options: [])
-            regexCache[pattern] = regex
-            return regex
-        } catch {
-            Compass.print("Failure to parse \"\(pattern)\" as regex: \(error)")
-            return nil
-        }
-    }
-    return regex
-}
-
 public enum PartType: Int {
     case capture = 0
     case string = 1
@@ -102,14 +74,14 @@ public struct QueryPart {
             }
             guard capturePart.type == .regex ||
                     capturePart.type == .captureString ||
-                    capturePart.type == .any else {
+                    capturePart.type == .string else {
                 Compass.print("Malformed query capture detected (capture part is not regex, \"()\" or \".\"): \(element)")
                 return nil
             }
             
             self.type = .capture
-            self.value = nil
-            self.regex = nil
+            self.value = capturePart.value
+            self.regex = capturePart.regex
             self.captureKey = captureKey
             self.capturePartType = capturePart.type
             self.capturePartRegex = capturePart.regex
@@ -182,29 +154,8 @@ public struct QueryPart {
 public struct Query {
     public let queryParts: [QueryPart]
     public let minimumPartsCount: Int
-    
-    init(queryParts: [QueryPart]) {
-        self.queryParts = queryParts
         
-        // Count up the minimum number of matching parts required
-        // This is sued to skip queries which cannot possibly match
-        var count = 0
-        for queryPart in queryParts {
-            switch queryPart.type {
-            case .debug, .comment:
-                break
-            default:
-                count += 1
-                break
-            }
-        }
-        self.minimumPartsCount = count
-    }
-}
-
-extension Compass {
-    
-    func compile(query element: JsonElement) -> Query? {
+    init?(element: JsonElement) {
         guard element.type == .array else {
             Compass.print("Unexpected query item detected: \(element)")
             return nil
@@ -219,7 +170,20 @@ extension Compass {
             queryParts.append(queryPart)
         }
         
-        return Query(queryParts: queryParts)
-    }
+        // Count up the minimum number of matching parts required
+        // This is sued to skip queries which cannot possibly match
+        var count = 0
+        for queryPart in queryParts {
+            switch queryPart.type {
+            case .debug, .comment:
+                break
+            default:
+                count += 1
+                break
+            }
+        }
         
+        self.minimumPartsCount = count
+        self.queryParts = queryParts
+    }
 }

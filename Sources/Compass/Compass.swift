@@ -9,6 +9,7 @@ import Spanker
 public final class Compass {
     
     public var queries: [Query] = []
+    public var validations: [Hitch: Validation] = [:]
     
     public init?(queries root: JsonElement) {
         // Note: the memory used by element will be deallocated after this call, so it it
@@ -20,11 +21,21 @@ public final class Compass {
         guard root.type == .array else { return nil }
         
         for queryElement in root.iterValues {
-            guard let query = compile(query: queryElement) else {
+            if queryElement.type == .dictionary,
+               let validation = Validation(element: queryElement) {
+                validations[validation.name] = validation
                 continue
             }
-            queries.append(query)
+            if queryElement.type == .array,
+               let query = Query(element: queryElement) {
+                queries.append(query)
+                continue
+            }
+            
+            Compass.print("Failed to process query: \(queryElement)")
         }
+        
+        validations["."] = Validation(element: JsonElement(unknown: ["validation":".","allow":[],"disallow":[]]))
     }
     
     public convenience init?(json: HalfHitch) {

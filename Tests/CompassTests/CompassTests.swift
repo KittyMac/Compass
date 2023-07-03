@@ -44,9 +44,8 @@ final class HitchTests: XCTestCase {
         [
             [
                 "// should capture line2",
-                "DEBUG",
                 "line1",
-                ["KEY", "()", "IsString"],
+                ["KEY", "()", "."],
                 "line3",
             ]
         ]
@@ -74,23 +73,32 @@ final class HitchTests: XCTestCase {
             "DOG",
             "CAT2",
             "DOG"
+            "KITTEN0",
+            "DOG"
         ]
         """
         
         let compassJson = """
         [
+            {
+                "validation": "isCat",
+                "allow": [
+                    "/CAT\\d+/",
+                    "/KITTEN\\d+/"
+                ],
+                "disallow": []
+            },
             [
                 "// should capture both cats",
-                "DEBUG",
                 "DOG",
-                ["KEY", "()", "IsCat"],
+                ["KEY", "()", "isCat"],
                 "DOG"
             ]
         ]
         """
         
         let expectedMatches = JsonElement(unknown: [
-            "KEY": JsonElement(unknown: ["CAT1", "ELEPHANT", "CAT2"])
+            "KEY": JsonElement(unknown: ["CAT1", "CAT2", "KITTEN0"])
         ])
         
         guard let compass = Compass(json: compassJson) else { XCTFail(); return }

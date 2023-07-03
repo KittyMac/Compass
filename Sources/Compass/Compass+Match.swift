@@ -17,7 +17,8 @@ extension Query {
         
     @discardableResult
     @inlinable @inline(__always)
-    func match(root: JsonElement,
+    func match(compass: Compass,
+               root: JsonElement,
                rootIdx: inout Int,
                matches: JsonElement) -> Bool {
         // TODO: we should be able to optimize a little by skipping queries which
@@ -76,18 +77,37 @@ extension Query {
                     Compass.print("Malformed capture with missing captureKey encountered: \(self)")
                     return false
                 }
+                guard let captureValidationKey = queryPart.captureValidationKey,
+                      let validation = compass.validations[captureValidationKey] else {
+                    Compass.print("Malformed capture with missing validation: \(self)")
+                    return false
+                }
+                
                 if capturePartType == .captureString {
-                    if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] ANY CAPTURE: [\(captureKey)] \(rootValue)") }
-                    localMatches.append(
-                        (captureKey.halfhitch(),rootValue)
-                    )
+                    // We capture the whole string, whatever it is, from the root element
+                    if validation.test(rootValue) {
+                        if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] ANY CAPTURE: [\(captureKey)] \(rootValue)") }
+                        localMatches.append(
+                            (captureKey.halfhitch(),rootValue)
+                        )
+                    } else {
+                        if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] FAILED VALIDATION \(validation.name): [\(captureKey)] \(rootValue)") }
+                    }
                     lastCaptureIdx = localRootIdx
                     localRootIdx += 1
                     continue
-                } else if capturePartType == .any {
-                    if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] SKIPPING CAPTURE: [\(captureKey)] \(rootValue)") }
+                } else if capturePartType == .string,
+                          let stringValue = queryPart.value {
+                    // We capture the whole string, whatever it is, from the capture query
+                    if validation.test(stringValue.halfhitch()) {
+                        if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] STATIC CAPTURE: [\(captureKey)] \(stringValue)") }
+                        localMatches.append(
+                            (captureKey.halfhitch(),stringValue.halfhitch())
+                        )
+                    } else {
+                        if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] FAILED VALIDATION \(validation.name): [\(captureKey)] \(stringValue)") }
+                    }
                     lastCaptureIdx = localRootIdx
-                    localRootIdx += 1
                     continue
                 } else if capturePartType == .regex {
                     if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] REGEX CAPTURE: [\(captureKey)] \(rootValue)") }
@@ -147,7 +167,8 @@ extension Compass {
             
             var didMatchQuery = false
             for query in queries {
-                if query.match(root: root,
+                if query.match(compass: self,
+                               root: root,
                                rootIdx: &rootIdx,
                                matches: matches) {
                     didMatchQuery = true
