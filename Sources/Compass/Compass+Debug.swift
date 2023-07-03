@@ -2,6 +2,14 @@ import Foundation
 import Hitch
 import Spanker
 
+extension QueryPart: CustomStringConvertible {
+    public var description: String {
+        let hitch = Hitch()
+        exportTo(hitch: hitch)
+        return hitch.toString()
+    }
+}
+
 extension QueryPart {
     @discardableResult
     @inlinable @inline(__always)
@@ -117,7 +125,13 @@ extension QueryPart {
     }
 }
 
-extension Query {
+extension Query: CustomStringConvertible {
+    public var description: String {
+        let hitch = Hitch(capacity: 1024)
+        exportTo(hitch: hitch)
+        return hitch.toString()
+    }
+    
     @discardableResult
     @inlinable @inline(__always)
     public func exportTo(hitch: Hitch) -> Hitch {

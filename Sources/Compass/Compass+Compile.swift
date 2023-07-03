@@ -20,12 +20,12 @@ fileprivate func getCachedRegex(_ pattern: Hitch) -> NSRegularExpression? {
     regexCacheLock.lock(); defer { regexCacheLock.unlock() }
     
     guard pattern.first == .forwardSlash && pattern.last == .forwardSlash else {
-        print("Regex string must start and end with \"/\": \(pattern)")
+        Compass.print("Regex string must start and end with \"/\": \(pattern)")
         return nil
     }
     
     guard let subpattern = pattern.substring(1, pattern.count-1) else {
-        print("Failed to extract subpattern from regex: \(pattern)")
+        Compass.print("Failed to extract subpattern from regex: \(pattern)")
         return nil
     }
     
@@ -35,7 +35,7 @@ fileprivate func getCachedRegex(_ pattern: Hitch) -> NSRegularExpression? {
             regexCache[pattern] = regex
             return regex
         } catch {
-            print("Failure to parse \"\(pattern)\" as regex: \(error)")
+            Compass.print("Failure to parse \"\(pattern)\" as regex: \(error)")
             return nil
         }
     }
@@ -80,30 +80,30 @@ public struct QueryPart {
         // capture group
         if element.type == .array {
             guard element.count == 3 else {
-                print("Malformed query capture detected: \(element)")
+                Compass.print("Malformed query capture detected: \(element)")
                 return nil
             }
 
             guard let captureKey: Hitch = element[0] else {
-                print("Malformed query capture detected (capture key is not a string): \(element)")
+                Compass.print("Malformed query capture detected (capture key is not a string): \(element)")
                 return nil
             }
             guard let validationKey: Hitch = element[2] else {
-                print("Malformed query capture detected (validation key is not a string): \(element)")
+                Compass.print("Malformed query capture detected (validation key is not a string): \(element)")
                 return nil
             }
             guard let capturePartElement: JsonElement = element[1] else {
-                print("Malformed query capture detected (failure to extract capture part): \(element)")
+                Compass.print("Malformed query capture detected (failure to extract capture part): \(element)")
                 return nil
             }
             guard let capturePart = QueryPart(element: capturePartElement) else {
-                print("Malformed query capture detected (failure to part query part): \(element)")
+                Compass.print("Malformed query capture detected (failure to part query part): \(element)")
                 return nil
             }
             guard capturePart.type == .regex ||
                     capturePart.type == .captureString ||
                     capturePart.type == .any else {
-                print("Malformed query capture detected (capture part is not regex, \"()\" or \".\"): \(element)")
+                Compass.print("Malformed query capture detected (capture part is not regex, \"()\" or \".\"): \(element)")
                 return nil
             }
             
@@ -160,7 +160,7 @@ public struct QueryPart {
         }
         
         guard let queryPartType = queryPartType else {
-            print("Malformed query detected (unknown part type): \(element)")
+            Compass.print("Malformed query detected (unknown part type): \(element)")
             return nil
         }
         
@@ -181,13 +181,32 @@ public struct QueryPart {
 /// dependent on the type of the part
 public struct Query {
     public let queryParts: [QueryPart]
+    public let minimumPartsCount: Int
+    
+    init(queryParts: [QueryPart]) {
+        self.queryParts = queryParts
+        
+        // Count up the minimum number of matching parts required
+        // This is sued to skip queries which cannot possibly match
+        var count = 0
+        for queryPart in queryParts {
+            switch queryPart.type {
+            case .debug, .comment:
+                break
+            default:
+                count += 1
+                break
+            }
+        }
+        self.minimumPartsCount = count
+    }
 }
 
 extension Compass {
     
     func compile(query element: JsonElement) -> Query? {
         guard element.type == .array else {
-            print("Unexpected query item detected: \(element)")
+            Compass.print("Unexpected query item detected: \(element)")
             return nil
         }
         
