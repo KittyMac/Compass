@@ -2,23 +2,23 @@ import Foundation
 import Hitch
 import Spanker
 
-let partComment: HalfHitch = "//";
-let partNotStructure: HalfHitch = "!--";
-let partSkipStructure: HalfHitch = "*--";
-let partCaptureSkip: HalfHitch = "(*)";
-let partCapture2: HalfHitch = "(2)";
-let partCapture3: HalfHitch = "(3)";
-let partCapture4: HalfHitch = "(4)";
-let partRepeat: HalfHitch = "REPEAT";
-let partRepeatUntilStructure: HalfHitch = "REPEAT_UNTIL_STRUCTURE";
-let partSkip: HalfHitch = "*";
-let partSkipOne: HalfHitch = "?";
-let partSkipAll: HalfHitch = "!*";
-let partCapture: HalfHitch = "()";
-let partAny: HalfHitch = ".";
-let partDebug: HalfHitch = "DEBUG";
+@usableFromInline let partComment: HalfHitch = "//";
+@usableFromInline let partNotStructure: HalfHitch = "!--";
+@usableFromInline let partSkipStructure: HalfHitch = "*--";
+@usableFromInline let partCaptureSkip: HalfHitch = "(*)";
+@usableFromInline let partCapture2: HalfHitch = "(2)";
+@usableFromInline let partCapture3: HalfHitch = "(3)";
+@usableFromInline let partCapture4: HalfHitch = "(4)";
+@usableFromInline let partRepeat: HalfHitch = "REPEAT";
+@usableFromInline let partRepeatUntilStructure: HalfHitch = "REPEAT_UNTIL_STRUCTURE";
+@usableFromInline let partSkip: HalfHitch = "*";
+@usableFromInline let partSkipOne: HalfHitch = "?";
+@usableFromInline let partSkipAll: HalfHitch = "!*";
+@usableFromInline let partCapture: HalfHitch = "()";
+@usableFromInline let partAny: HalfHitch = ".";
+@usableFromInline let partDebug: HalfHitch = "DEBUG";
 
-enum PartType: Int {
+public enum PartType: Int {
     case string = 0
     case regex = 1
 
@@ -39,12 +39,12 @@ enum PartType: Int {
     case debug = 17
 }
 
-struct QueryPart {
-    let type: PartType
-    let value: Hitch
+public struct QueryPart {
+    public let type: PartType
+    public let value: Hitch?
     
     init(type: PartType,
-         value: Hitch) {
+         value: Hitch?) {
         self.type = type
         self.value = value
     }
@@ -53,19 +53,24 @@ struct QueryPart {
 /// A query is a series of query parts, each part intending to match
 /// against an entry in the source JSON array. How they match are
 /// dependent on the type of the part
-struct Query {
-    let parts: [QueryPart]
+public struct Query {
+    public let queryParts: [QueryPart]
 }
 
 extension Compass {
     
     func compile(query element: JsonElement) -> Query? {
-        guard element.type == .array else { return nil }
+        guard element.type == .array else {
+            print("Unexpected query item detected:")
+            print(element.description)
+            return nil
+        }
         
-        var parts: [QueryPart] = []
+        var queryParts: [QueryPart] = []
         
         for elementPart in element.iterValues {
             var queryPartType: PartType?
+            var queryPartValue: Hitch?
             
             // var queryPart = QueryPart(type: PartType, value: Hitch)
             // capture group
@@ -79,40 +84,50 @@ extension Compass {
                 
                 if value.starts(with: partComment) {
                     queryPartType = .comment
-                } else if value.starts(with: partNotStructure) {
+                    queryPartValue = value.substring(2, value.count)
+                } else if value == partNotStructure {
                     queryPartType = .notStructure
-                } else if value.starts(with: partSkipStructure) {
+                } else if value == partSkipStructure {
                     queryPartType = .skipStructure
-                } else if value.starts(with: partCaptureSkip) {
+                } else if value == partCaptureSkip {
                     queryPartType = .captureSkip
-                } else if value.starts(with: partCapture2) {
+                } else if value == partCapture2 {
                     queryPartType = .capture2
-                } else if value.starts(with: partCapture3) {
+                } else if value == partCapture3 {
                     queryPartType = .capture3
-                } else if value.starts(with: partCapture4) {
+                } else if value == partCapture4 {
                     queryPartType = .capture4
-                } else if value.starts(with: partRepeat) {
+                } else if value == partRepeat {
                     queryPartType = .repeat
-                } else if value.starts(with: partRepeatUntilStructure) {
+                } else if value == partRepeatUntilStructure {
                     queryPartType = .repeatUntilStructure
-                } else if value.starts(with: partSkip) {
+                } else if value == partSkip {
                     queryPartType = .skip
-                } else if value.starts(with: partSkipOne) {
+                } else if value == partSkipOne {
                     queryPartType = .skipOne
-                } else if value.starts(with: partSkipAll) {
+                } else if value == partSkipAll {
                     queryPartType = .skipAll
-                } else if value.starts(with: partCapture) {
+                } else if value == partCapture {
                     queryPartType = .capture
-                } else if value.starts(with: partAny) {
+                } else if value == partAny {
                     queryPartType = .any
-                } else if value.starts(with: partDebug) {
+                } else if value == partDebug {
                     queryPartType = .debug
+                } else {
+                    queryPartType = .string
+                    queryPartValue = value.hitch()
                 }
             }
-
+            
+            if let queryPartType = queryPartType {
+                queryParts.append(
+                    QueryPart(type: queryPartType,
+                              value: queryPartValue)
+                )
+            }
         }
         
-        return Query(parts: parts)
+        return Query(queryParts: queryParts)
     }
         
 }

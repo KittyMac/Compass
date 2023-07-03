@@ -7,26 +7,29 @@ import Spanker
 // run this compass against different json and it will return the matches found.
 
 public final class Compass {
-    var queries: [Query] = []
     
-    public init?(element: JsonElement) {
+    public var queries: [Query] = []
+    
+    public init?(queries root: JsonElement) {
         // Note: the memory used by element will be deallocated after this call, so it it
         // important to not rely on the contents of element for persistance
         //
         // Note: element is expected to be an array of queries
         //
         
-        guard element.type == .array else { return nil }
+        guard root.type == .array else { return nil }
         
-        for queryElement in element.iterValues {
-            guard let query = compile(query: queryElement) else { continue }
+        for queryElement in root.iterValues {
+            guard let query = compile(query: queryElement) else {
+                continue
+            }
             queries.append(query)
         }
     }
     
     public convenience init?(json: HalfHitch) {
-        guard let element = Spanker.parse(halfhitch: json) else { return nil }
-        self.init(element: element)
+        guard let root = Spanker.parse(halfhitch: json) else { return nil }
+        self.init(queries: root)
     }
     
     public convenience init?(json: Hitch) {
