@@ -1,0 +1,34 @@
+{
+  "object": {
+    "pins": [
+      {
+        "package": "Chronometer",
+        "repositoryURL": "https://github.com/KittyMac/Chronometer.git",
+        "state": {
+          "branch": null,
+          "revision": "742a6a58714e6c134d635abc589dbca9526099c3",
+          "version": "0.1.9"
+        }
+      },
+      {
+        "package": "Hitch",
+        "repositoryURL": "https://github.com/KittyMac/Hitch.git",
+        "state": {
+          "branch": null,
+          "revision": "271042ad8fe12eeb2f44dfd8805d06a4b54df24b",
+          "version": "0.4.108"
+        }
+      },
+      {
+        "package": "Spanker",
+        "repositoryURL": "https://github.com/KittyMac/Spanker.git",
+        "state": {
+          "branch": null,
+          "revision": "6287aebdb7cb64787b7a6790bfef860ccb55e0ef",
+          "version": "0.2.33"
+        }
+      }
+    ]
+  },
+  "version": 1
+}
