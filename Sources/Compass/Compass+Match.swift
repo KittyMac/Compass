@@ -14,7 +14,7 @@ extension Query {
         }
         existing.append(value: value)
     }
-    
+        
     @discardableResult
     @inlinable @inline(__always)
     func match(root: JsonElement,
@@ -31,6 +31,7 @@ extension Query {
         
         var localRootIdx = rootIdx
         var lastCaptureIdx = rootIdx
+        var localMatches: [(HalfHitch,HalfHitch)] = []
         for queryIdx in 0..<queryParts.count {
             guard let rootValue = root[localRootIdx]?.halfHitchValue else {
                 Compass.print("Unexpected non-string value at root index \(localRootIdx): \(root[element: localRootIdx]?.description ?? "nil")")
@@ -77,21 +78,21 @@ extension Query {
                 }
                 if capturePartType == .captureString {
                     if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] ANY CAPTURE: [\(captureKey)] \(rootValue)") }
-                    capture(key: captureKey,
-                            value: rootValue.hitch(),
-                            matches: matches)
-                    lastCaptureIdx = localRootIdx + 1
+                    localMatches.append(
+                        (captureKey.halfhitch(),rootValue)
+                    )
+                    lastCaptureIdx = localRootIdx
                     localRootIdx += 1
                     continue
                 } else if capturePartType == .any {
                     if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] SKIPPING CAPTURE: [\(captureKey)] \(rootValue)") }
-                    lastCaptureIdx = localRootIdx + 1
+                    lastCaptureIdx = localRootIdx
                     localRootIdx += 1
                     continue
                 } else if capturePartType == .regex {
                     if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] REGEX CAPTURE: [\(captureKey)] \(rootValue)") }
                     fatalError("TO BE IMPLEMENTED")
-                    lastCaptureIdx = localRootIdx + 1
+                    lastCaptureIdx = localRootIdx
                     localRootIdx += 1
                     continue
                 } else {
@@ -105,9 +106,17 @@ extension Query {
             }
         }
         
-        rootIdx = lastCaptureIdx
+        // Advance the root index just past the last capture index
+        rootIdx = lastCaptureIdx + 1
         if debug {
             Compass.print(tag: "DEBUG", "[\(localRootIdx)] QUERY SUCCESS: advancing to \(rootIdx)")
+        }
+        
+        // Merge in our local matches into our global matches
+        for match in localMatches {
+            capture(key: match.0.hitch(),
+                    value: match.1.hitch(),
+                    matches: matches)
         }
         
         return true
