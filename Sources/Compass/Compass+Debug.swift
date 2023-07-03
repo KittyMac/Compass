@@ -15,7 +15,47 @@ extension QueryPart {
             hitch.append(.doubleQuote)
             break
         case .regex:
+            hitch.append(.doubleQuote)
+            hitch.append(.forwardSlash)
+            if let regex = regex {
+                hitch.append(regex.pattern)
+            }
+            hitch.append(.forwardSlash)
+            hitch.append(.doubleQuote)
             break
+        case .capture:
+            hitch.append(.openBrace)
+            hitch.append(.doubleQuote)
+            hitch.append(captureKey ?? "MISSING_CAPTURE_KEY")
+            hitch.append(.doubleQuote)
+            hitch.append(.comma)
+            if capturePartType == .captureString {
+                hitch.append(.doubleQuote)
+                hitch.append(partCaptureString)
+                hitch.append(.doubleQuote)
+            } else if capturePartType == .any {
+                hitch.append(.doubleQuote)
+                hitch.append(partAny)
+                hitch.append(.doubleQuote)
+            } else if capturePartType == .regex,
+                      let regex = capturePartRegex {
+                hitch.append(.doubleQuote)
+                hitch.append(.forwardSlash)
+                hitch.append(regex.pattern)
+                hitch.append(.forwardSlash)
+                hitch.append(.doubleQuote)
+            } else {
+                hitch.append("MISSING_CAPTURE_PART")
+            }
+            hitch.append(.comma)
+            hitch.append(.doubleQuote)
+            hitch.append(captureValidationKey ?? "MISSING_VALIDATION_KEY")
+            hitch.append(.doubleQuote)
+            hitch.append(.closeBrace)
+        case .captureString:
+            hitch.append(.doubleQuote)
+            hitch.append(partCaptureString)
+            hitch.append(.doubleQuote)
         case .comment:
             hitch.append(.doubleQuote)
             hitch.append(partComment)
@@ -32,26 +72,6 @@ extension QueryPart {
         case .skipStructure:
             hitch.append(.doubleQuote)
             hitch.append(partSkipStructure)
-            hitch.append(.doubleQuote)
-            break
-        case .captureSkip:
-            hitch.append(.doubleQuote)
-            hitch.append(partCaptureSkip)
-            hitch.append(.doubleQuote)
-            break
-        case .capture2:
-            hitch.append(.doubleQuote)
-            hitch.append(partCapture2)
-            hitch.append(.doubleQuote)
-            break
-        case .capture3:
-            hitch.append(.doubleQuote)
-            hitch.append(partCapture3)
-            hitch.append(.doubleQuote)
-            break
-        case .capture4:
-            hitch.append(.doubleQuote)
-            hitch.append(partCapture4)
             hitch.append(.doubleQuote)
             break
         case .repeat:
@@ -77,11 +97,6 @@ extension QueryPart {
         case .skipAll:
             hitch.append(.doubleQuote)
             hitch.append(partSkipAll)
-            hitch.append(.doubleQuote)
-            break
-        case .capture:
-            hitch.append(.doubleQuote)
-            hitch.append(partCapture)
             hitch.append(.doubleQuote)
             break
         case .any:

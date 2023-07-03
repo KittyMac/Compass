@@ -3,51 +3,177 @@ import Hitch
 import Spanker
 
 @usableFromInline let partComment: HalfHitch = "//";
+@usableFromInline let partCaptureString: HalfHitch = "()";
 @usableFromInline let partNotStructure: HalfHitch = "!--";
 @usableFromInline let partSkipStructure: HalfHitch = "*--";
-@usableFromInline let partCaptureSkip: HalfHitch = "(*)";
-@usableFromInline let partCapture2: HalfHitch = "(2)";
-@usableFromInline let partCapture3: HalfHitch = "(3)";
-@usableFromInline let partCapture4: HalfHitch = "(4)";
 @usableFromInline let partRepeat: HalfHitch = "REPEAT";
 @usableFromInline let partRepeatUntilStructure: HalfHitch = "REPEAT_UNTIL_STRUCTURE";
 @usableFromInline let partSkip: HalfHitch = "*";
 @usableFromInline let partSkipOne: HalfHitch = "?";
 @usableFromInline let partSkipAll: HalfHitch = "!*";
-@usableFromInline let partCapture: HalfHitch = "()";
 @usableFromInline let partAny: HalfHitch = ".";
 @usableFromInline let partDebug: HalfHitch = "DEBUG";
 
-public enum PartType: Int {
-    case string = 0
-    case regex = 1
+fileprivate var regexCache: [Hitch: NSRegularExpression] = [:]
+fileprivate var regexCacheLock = NSLock()
+fileprivate func getCachedRegex(_ pattern: Hitch) -> NSRegularExpression? {
+    regexCacheLock.lock(); defer { regexCacheLock.unlock() }
+    
+    guard pattern.first == .forwardSlash && pattern.last == .forwardSlash else {
+        print("Regex string must start and end with \"/\": \(pattern)")
+        return nil
+    }
+    
+    guard let subpattern = pattern.substring(1, pattern.count-1) else {
+        print("Failed to extract subpattern from regex: \(pattern)")
+        return nil
+    }
+    
+    guard let regex = regexCache[pattern] else {
+        do {
+            let regex = try NSRegularExpression(pattern: subpattern.description, options: [])
+            regexCache[pattern] = regex
+            return regex
+        } catch {
+            print("Failure to parse \"\(pattern)\" as regex: \(error)")
+            return nil
+        }
+    }
+    return regex
+}
 
-    case comment = 2
+public enum PartType: Int {
+    case capture = 0
+    case string = 1
+    case regex = 2
+
+    case comment = 3
     case notStructure = 4
     case skipStructure = 5
-    case captureSkip = 6
-    case capture2 = 7
-    case capture3 = 8
-    case capture4 = 9
     case `repeat` = 10
     case repeatUntilStructure = 11
-    case skip = 12
-    case skipOne = 13
-    case skipAll = 14
-    case capture = 15
+    case captureString = 12
+    case skip = 13
+    case skipOne = 14
+    case skipAll = 15
     case any = 16
     case debug = 17
 }
 
 public struct QueryPart {
+    // Simple query parts have a type and an optional value
     public let type: PartType
     public let value: Hitch?
+    public let regex: NSRegularExpression?
     
-    init(type: PartType,
-         value: Hitch?) {
-        self.type = type
-        self.value = value
+    // Capture query parts have a key (the place to store the captured values),
+    // a capture type (how to determine the value to capture) and
+    // a validation key (a lookup to a ruleset which determines if this is
+    // a valid value)
+    public let captureKey: Hitch?
+    public let capturePartType: PartType?
+    public let capturePartRegex: NSRegularExpression?
+    public let captureValidationKey: Hitch?
+        
+    init?(element: JsonElement) {
+        // var queryPart = QueryPart(type: PartType, value: Hitch)
+        // capture group
+        if element.type == .array {
+            guard element.count == 3 else {
+                print("Malformed query capture detected: \(element)")
+                return nil
+            }
+
+            guard let captureKey: Hitch = element[0] else {
+                print("Malformed query capture detected (capture key is not a string): \(element)")
+                return nil
+            }
+            guard let validationKey: Hitch = element[2] else {
+                print("Malformed query capture detected (validation key is not a string): \(element)")
+                return nil
+            }
+            guard let capturePartElement: JsonElement = element[1] else {
+                print("Malformed query capture detected (failure to extract capture part): \(element)")
+                return nil
+            }
+            guard let capturePart = QueryPart(element: capturePartElement) else {
+                print("Malformed query capture detected (failure to part query part): \(element)")
+                return nil
+            }
+            guard capturePart.type == .regex ||
+                    capturePart.type == .captureString ||
+                    capturePart.type == .any else {
+                print("Malformed query capture detected (capture part is not regex, \"()\" or \".\"): \(element)")
+                return nil
+            }
+            
+            self.type = .capture
+            self.value = nil
+            self.regex = nil
+            self.captureKey = captureKey
+            self.capturePartType = capturePart.type
+            self.capturePartRegex = capturePart.regex
+            self.captureValidationKey = validationKey
+            return
+        }
+        
+        // other token
+        var queryPartType: PartType?
+        var queryPartValue: Hitch?
+        var queryPartRegex: NSRegularExpression?
+        if element.type == .string,
+           let value = element.halfHitchValue {
+            
+            if value.first == .forwardSlash && value.last == .forwardSlash {
+                queryPartType = .regex
+                queryPartRegex = getCachedRegex(value.hitch())
+                if queryPartRegex == nil {
+                    return nil
+                }
+            } else if value.starts(with: partComment) {
+                queryPartType = .comment
+                queryPartValue = value.substring(2, value.count)
+            } else if value == partCaptureString {
+                queryPartType = .captureString
+            } else if value == partNotStructure {
+                queryPartType = .notStructure
+            } else if value == partSkipStructure {
+                queryPartType = .skipStructure
+            } else if value == partRepeat {
+                queryPartType = .repeat
+            } else if value == partRepeatUntilStructure {
+                queryPartType = .repeatUntilStructure
+            } else if value == partSkip {
+                queryPartType = .skip
+            } else if value == partSkipOne {
+                queryPartType = .skipOne
+            } else if value == partSkipAll {
+                queryPartType = .skipAll
+            } else if value == partAny {
+                queryPartType = .any
+            } else if value == partDebug {
+                queryPartType = .debug
+            } else {
+                queryPartType = .string
+                queryPartValue = value.hitch()
+            }
+        }
+        
+        guard let queryPartType = queryPartType else {
+            print("Malformed query detected (unknown part type): \(element)")
+            return nil
+        }
+        
+        self.type = queryPartType
+        self.value = queryPartValue
+        self.regex = queryPartRegex
+        self.captureKey = nil
+        self.capturePartType = nil
+        self.capturePartRegex = nil
+        self.captureValidationKey = nil
     }
+    
+    
 }
 
 /// A query is a series of query parts, each part intending to match
@@ -61,70 +187,17 @@ extension Compass {
     
     func compile(query element: JsonElement) -> Query? {
         guard element.type == .array else {
-            print("Unexpected query item detected:")
-            print(element.description)
+            print("Unexpected query item detected: \(element)")
             return nil
         }
         
         var queryParts: [QueryPart] = []
         
         for elementPart in element.iterValues {
-            var queryPartType: PartType?
-            var queryPartValue: Hitch?
-            
-            // var queryPart = QueryPart(type: PartType, value: Hitch)
-            // capture group
-            if elementPart.type == .array {
-                
+            guard let queryPart = QueryPart(element: elementPart) else {
+                return nil
             }
-            
-            // other token
-            if elementPart.type == .string,
-               let value = elementPart.halfHitchValue {
-                
-                if value.starts(with: partComment) {
-                    queryPartType = .comment
-                    queryPartValue = value.substring(2, value.count)
-                } else if value == partNotStructure {
-                    queryPartType = .notStructure
-                } else if value == partSkipStructure {
-                    queryPartType = .skipStructure
-                } else if value == partCaptureSkip {
-                    queryPartType = .captureSkip
-                } else if value == partCapture2 {
-                    queryPartType = .capture2
-                } else if value == partCapture3 {
-                    queryPartType = .capture3
-                } else if value == partCapture4 {
-                    queryPartType = .capture4
-                } else if value == partRepeat {
-                    queryPartType = .repeat
-                } else if value == partRepeatUntilStructure {
-                    queryPartType = .repeatUntilStructure
-                } else if value == partSkip {
-                    queryPartType = .skip
-                } else if value == partSkipOne {
-                    queryPartType = .skipOne
-                } else if value == partSkipAll {
-                    queryPartType = .skipAll
-                } else if value == partCapture {
-                    queryPartType = .capture
-                } else if value == partAny {
-                    queryPartType = .any
-                } else if value == partDebug {
-                    queryPartType = .debug
-                } else {
-                    queryPartType = .string
-                    queryPartValue = value.hitch()
-                }
-            }
-            
-            if let queryPartType = queryPartType {
-                queryParts.append(
-                    QueryPart(type: queryPartType,
-                              value: queryPartValue)
-                )
-            }
+            queryParts.append(queryPart)
         }
         
         return Query(queryParts: queryParts)

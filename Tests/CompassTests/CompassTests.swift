@@ -4,7 +4,7 @@ import Compass
 
 final class HitchTests: XCTestCase {
     
-    func testSimpleCompile() {
+    func testCompile() {
         let compassJson = """
         [
             [
@@ -12,27 +12,20 @@ final class HitchTests: XCTestCase {
                 "line1",
                 "!--",
                 "*--",
-                "(*)",
-                "(2)",
-                "(3)",
-                "(4)",
                 "REPEAT",
                 "REPEAT_UNTIL_STRUCTURE",
                 "*",
                 "?",
                 "!*",
-                "()",
                 ".",
-                "DEBUG"
+                "DEBUG",
+                "/line(.*)/",
+                ["KEY", "()", "IsString"]
             ]
         ]
         """
         guard let compass = Compass(json: compassJson) else { XCTFail(); return }
-        
-        
-        
-
-        XCTAssertEqual(compass.description, #"[["// simple match","line1","!--","*--","(*)","(2)","(3)","(4)","REPEAT","REPEAT_UNTIL_STRUCTURE","*","?","!*","()",".","DEBUG"]]"#)
+        XCTAssertEqual(compass.description, #"[["// simple match","line1","!--","*--","REPEAT","REPEAT_UNTIL_STRUCTURE","*","?","!*",".","DEBUG","/line(.*)/",["KEY","()","IsString"]]]"#)
     }
     
     func testSimpleMatch() {
