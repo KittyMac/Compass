@@ -366,6 +366,7 @@ extension Compass {
                                debug: &debug,
                                indent: 0,
                                matches: matches) {
+                    rootIdx -= 1
                     didMatchQuery = true
                     break
                 }
