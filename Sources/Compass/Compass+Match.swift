@@ -9,7 +9,7 @@ extension Query {
                  value: Hitch,
                  matches: JsonElement) {
         guard let existing: JsonElement = matches[key] else {
-            matches.set(key: key.halfhitch(), value: JsonElement(unknown: [value]))
+            matches.set(key: key.halfhitch(), value: ^[value])
             return
         }
         existing.append(value: value)
@@ -32,7 +32,7 @@ extension Query {
         
         var localRootIdx = rootIdx
         var lastCaptureIdx = rootIdx
-        var localMatches: [(HalfHitch,HalfHitch)] = []
+        let localMatch = ^[:]
         for queryIdx in 0..<queryParts.count {
             guard let rootValue = root[localRootIdx]?.halfHitchValue else {
                 Compass.print("Unexpected non-string value at root index \(localRootIdx): \(root[element: localRootIdx]?.description ?? "nil")")
@@ -87,11 +87,12 @@ extension Query {
                     // We capture the whole string, whatever it is, from the root element
                     if validation.test(rootValue) {
                         if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] ANY CAPTURE: [\(captureKey)] \(rootValue)") }
-                        localMatches.append(
-                            (captureKey.halfhitch(),rootValue)
-                        )
+                        capture(key: captureKey,
+                                value: rootValue.hitch(),
+                                matches: localMatch)
                     } else {
                         if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] FAILED VALIDATION \(validation.name): [\(captureKey)] \(rootValue)") }
+                        return false
                     }
                     lastCaptureIdx = localRootIdx
                     localRootIdx += 1
@@ -101,11 +102,12 @@ extension Query {
                     // We capture the whole string, whatever it is, from the capture query
                     if validation.test(stringValue.halfhitch()) {
                         if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] STATIC CAPTURE: [\(captureKey)] \(stringValue)") }
-                        localMatches.append(
-                            (captureKey.halfhitch(),stringValue.halfhitch())
-                        )
+                        capture(key: captureKey,
+                                value: rootValue.hitch(),
+                                matches: localMatch)
                     } else {
                         if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] FAILED VALIDATION \(validation.name): [\(captureKey)] \(stringValue)") }
+                        return false
                     }
                     lastCaptureIdx = localRootIdx
                     continue
@@ -123,6 +125,18 @@ extension Query {
             default:
                 Compass.print("Support for query part \(queryPart.type) to be implemented")
                 return false
+                /*
+            case .regex:
+            case .notStructure:
+            case .skipStructure:
+            case .repeat:
+            case .repeatUntilStructure:
+            case .captureString:
+            case .skip:
+            case .skipOne:
+            case .skipAll:
+            case .any:
+                */
             }
         }
         
@@ -133,12 +147,8 @@ extension Query {
         }
         
         // Merge in our local matches into our global matches
-        for match in localMatches {
-            capture(key: match.0.hitch(),
-                    value: match.1.hitch(),
-                    matches: matches)
-        }
-        
+        matches.append(value: localMatch)
+
         return true
     }
 }
@@ -160,7 +170,7 @@ extension Compass {
         // Eventually we want to return a JsonElement of captures. Each
         // key in the element is a capture key defined in the
         // compass regex and the value is a array of all matches found.
-        let matches = JsonElement(unknown: [:])
+        let matches = ^[]
         
         var rootIdx = 0
         while rootIdx < root.count {

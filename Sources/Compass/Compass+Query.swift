@@ -2,6 +2,47 @@ import Foundation
 import Hitch
 import Spanker
 
+// Definition
+// Structure: a string which begins with "--"; these are typically structure elements
+//   captured from the HTML and included as guides.
+// Examples:
+//  link: -- http:\/\/www.example.com --
+//  table: -- table --
+//  image: -- img --
+//         -- http:\/\/www.example.com/image.png --
+//         -- endimg --
+//
+// Matching Ruleset:
+// String matches in general are straight compares (case senstive and must match all)
+// ~ at the beginning means to match the rest of the string anywhere in the content
+// ^ at the beginning means to match the rest of the string at the beginning of the content
+// Examples:
+//   "^Price" will match "Price" and "Prices are low!" but not "Low Prices"
+//   "~Price" will match "Price" and "Prices are low!" and "Low Prices"
+//
+// Regex can also be used to match against the content.
+// Example:
+//   /price/i will match "Price" and "price" but not "Prices are low!" or "Low Prices"
+//
+// Custom Commands:
+// "//" means a developer comment (doesn't match anything)
+// "DEBUG" means to print debugging information for this specific query
+//
+// "!--" means to match anything that is not a structure
+// "*--" means to skip forward until we find a non-structure
+// "*" means to advance until the next part matches, we reach end of document, or we encounter structure
+// "!*" means to advance until the next part matches or we reach end of document
+// "?" means to advance at most once or until the next part matches
+// "." means to advance once (matches anything)
+// "REPEAT" means to repeat this query until we match the next part
+// "REPEAT_UNTIL_STRUCTURE" means to repeat this query until we match the next part or a structure
+//
+// To capture a value, you must provide a capture block. This is an array where
+// Index 0 is the capture key
+// Index 1 is the capture command
+// Index 2 is the validation command
+
+
 @usableFromInline let partComment: HalfHitch = "//";
 @usableFromInline let partCaptureString: HalfHitch = "()";
 @usableFromInline let partNotStructure: HalfHitch = "!--";

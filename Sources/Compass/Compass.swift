@@ -35,7 +35,7 @@ public final class Compass {
             Compass.print("Failed to process query: \(queryElement)")
         }
         
-        validations["."] = Validation(element: JsonElement(unknown: ["validation":".","allow":[],"disallow":[]]))
+        validations["."] = Validation(element: ^["validation":".","allow":[],"disallow":[]])
     }
     
     public convenience init?(json: HalfHitch) {

@@ -51,19 +51,18 @@ final class HitchTests: XCTestCase {
         ]
         """
         
-        let expectedMatches = JsonElement(unknown: [
-            "KEY": JsonElement(unknown: ["line2"])
-        ])
+        let expectedMatches = ^[
+            ["KEY": ["line2"]]
+        ]
         
         guard let compass = Compass(json: compassJson) else { XCTFail(); return }
         
         guard let matches = compass.matches(against: sourceJson) else { XCTFail(); return }
         
-        XCTAssertEqual(matches.description, expectedMatches.description)
+        XCTAssertEqual(matches.sortKeys().description, expectedMatches.sortKeys().description)
     }
     
     func testSimpleMatch1() {
-        // NOTE: will match ELEPHANT until we implement validation IsCat
         let sourceJson = """
         [
             "DOG",
@@ -97,14 +96,95 @@ final class HitchTests: XCTestCase {
         ]
         """
         
-        let expectedMatches = JsonElement(unknown: [
-            "KEY": JsonElement(unknown: ["CAT1", "CAT2", "KITTEN0"])
-        ])
+        let expectedMatches = ^[
+            ["KEY": ["CAT1"]],
+            ["KEY": ["CAT2"]],
+            ["KEY": ["KITTEN0"]]
+        ]
         
         guard let compass = Compass(json: compassJson) else { XCTFail(); return }
         
         guard let matches = compass.matches(against: sourceJson) else { XCTFail(); return }
         
-        XCTAssertEqual(matches.description, expectedMatches.description)
+        XCTAssertEqual(matches.sortKeys().description, expectedMatches.sortKeys().description)
+    }
+    
+    func testComplexMatch0() {
+        let sourceJson = """
+        [
+            "lorem ipsum",
+            "-- character",
+            "NAME",
+            "Gandlaf",
+            "CLASS",
+            "Wizard",
+            "HP",
+            "100",
+            "lorem ipsum",
+            "lorem ipsum",
+            "-- character",
+            "NAME",
+            "Gimli",
+            "CLASS",
+            "Warrior",
+            "HP",
+            "500",
+            "lorem ipsum",
+            "lorem ipsum",
+            "-- character",
+            "NAME",
+            "Legolas",
+            "CLASS",
+            "Elf",
+            "HP",
+            "-1000",
+        ]
+        """
+        
+        let compassJson = """
+        [
+            {
+                "validation": "isClass",
+                "allow": [
+                    "/(Wizard|Warrior)/"
+                ],
+                "disallow": []
+            },
+            {
+                "validation": "isName",
+                "allow": [
+                    "/\\w+/"
+                ],
+                "disallow": []
+            },
+            {
+                "validation": "isHitPoints",
+                "allow": [
+                    "/\\d+/"
+                ],
+                "disallow": []
+            },
+            [
+                "NAME",
+                ["NAME", "()", "isName"],
+                "CLASS",
+                ["CLASS", "()", "isClass"],
+                "HP",
+                ["HITPOINTS", "()", "isHitPoints"],
+            ]
+        ]
+        """
+        
+        // Note: Legolas will not be matched because -1000 is not valid hitpoints
+        let expectedMatches = ^[
+            ["NAME": ["Gandlaf"], "CLASS": ["Wizard"], "HITPOINTS": ["100"] ],
+            ["NAME": ["Gimli"], "CLASS": ["Warrior"], "HITPOINTS": ["500"] ]
+        ]
+
+        guard let compass = Compass(json: compassJson) else { XCTFail(); return }
+        
+        guard let matches = compass.matches(against: sourceJson) else { XCTFail(); return }
+        
+        XCTAssertEqual(matches.sortKeys().description, expectedMatches.sortKeys().description)
     }
 }
