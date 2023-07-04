@@ -116,8 +116,16 @@ extension Query {
             
         case .repeat, .repeatUntilStructure:
             let subqueryMatches = ^[]
+            let endOnStructure = queryPart.type == .repeatUntilStructure
             
             while localRootIdx < root.count {
+                
+                // end on structure?
+                if endOnStructure,
+                   let rootValue = root[localRootIdx]?.halfHitchValue,
+                   rootValue.starts(with: "-- ") {
+                    break
+                }
                 
                 // are we the next part?
                 var nodebug = false
@@ -276,9 +284,6 @@ extension Query {
             return false
             /*
         case .regex:
-        case .repeat:
-        case .repeatUntilStructure:
-        case .captureString:
         case .skip:
         case .skipOne:
         case .skipAll:

@@ -237,10 +237,9 @@ final class HitchTests: XCTestCase {
                 ["HITPOINTS", "()", "isHitPoints"],
                 "DESCRIPTION",
                 [
-                    "REPEAT",
+                    "REPEAT_UNTIL_STRUCTURE",
                     ["STORY", "()", "isStory"]
-                ],
-                "^--"
+                ]
             ]
         ]
         """#
