@@ -1,34 +1,32 @@
 {
-  "object": {
-    "pins": [
-      {
-        "package": "Chronometer",
-        "repositoryURL": "https://github.com/KittyMac/Chronometer.git",
-        "state": {
-          "branch": null,
-          "revision": "742a6a58714e6c134d635abc589dbca9526099c3",
-          "version": "0.1.9"
-        }
-      },
-      {
-        "package": "Hitch",
-        "repositoryURL": "https://github.com/KittyMac/Hitch.git",
-        "state": {
-          "branch": null,
-          "revision": "271042ad8fe12eeb2f44dfd8805d06a4b54df24b",
-          "version": "0.4.108"
-        }
-      },
-      {
-        "package": "Spanker",
-        "repositoryURL": "https://github.com/KittyMac/Spanker.git",
-        "state": {
-          "branch": null,
-          "revision": "bdd5103b9fdafc00dcb3bc31fbc231f27788fc30",
-          "version": "0.2.35"
-        }
+  "pins" : [
+    {
+      "identity" : "chronometer",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/KittyMac/Chronometer.git",
+      "state" : {
+        "revision" : "742a6a58714e6c134d635abc589dbca9526099c3",
+        "version" : "0.1.9"
       }
-    ]
-  },
-  "version": 1
+    },
+    {
+      "identity" : "hitch",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/KittyMac/Hitch.git",
+      "state" : {
+        "revision" : "271042ad8fe12eeb2f44dfd8805d06a4b54df24b",
+        "version" : "0.4.108"
+      }
+    },
+    {
+      "identity" : "spanker",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/KittyMac/Spanker.git",
+      "state" : {
+        "revision" : "a186e1113bc484898966bd4262dea080da48abf1",
+        "version" : "0.2.37"
+      }
+    }
+  ],
+  "version" : 2
 }

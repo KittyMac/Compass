@@ -153,6 +153,14 @@ public struct QueryPart {
         var queryPartType: PartType?
         var queryPartValue: Hitch?
         var queryPartRegex: NSRegularExpression?
+        if element.type == .regex,
+           let value = element.halfHitchValue {
+            queryPartType = .regex
+            queryPartRegex = getCachedRegex(value.hitch())
+            if queryPartRegex == nil {
+                return nil
+            }
+        }
         if element.type == .string,
            let value = element.halfHitchValue {
             

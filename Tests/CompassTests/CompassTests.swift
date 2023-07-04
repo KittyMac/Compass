@@ -6,7 +6,7 @@ import Spanker
 final class HitchTests: XCTestCase {
     
     func testCompile() {
-        let compassJson = """
+        let compassJson = #"""
         [
             [
                 "// simple match",
@@ -18,17 +18,17 @@ final class HitchTests: XCTestCase {
                 "!*",
                 ".",
                 "DEBUG",
-                "/line(.*)/",
+                /line(.*)/i,
                 ["KEY", "()", "IsString"]
             ]
         ]
-        """
+        """#
         guard let compass = Compass(json: compassJson) else { XCTFail(); return }
-        XCTAssertEqual(compass.description, #"[["// simple match","line1","!--","*--","*","?","!*",".","DEBUG","/line(.*)/",["KEY","()","IsString"]]]"#)
+        XCTAssertEqual(compass.description, #"[["// simple match","line1","!--","*--","*","?","!*",".","DEBUG",/line(.*)/i,["KEY","()","IsString"]]]"#)
     }
     
     func testSimpleMatch0() {
-        let sourceJson = """
+        let sourceJson = #"""
         [
             "line0",
             "line1",
@@ -36,9 +36,9 @@ final class HitchTests: XCTestCase {
             "line3",
             "line4",
         ]
-        """
+        """#
         
-        let compassJson = """
+        let compassJson = #"""
         [
             [
                 "// should capture line2",
@@ -47,7 +47,7 @@ final class HitchTests: XCTestCase {
                 "line3",
             ]
         ]
-        """
+        """#
         
         let expectedMatches = ^[
             ["KEY": ["line2"]]
@@ -61,7 +61,7 @@ final class HitchTests: XCTestCase {
     }
     
     func testSimpleMatch1() {
-        let sourceJson = """
+        let sourceJson = #"""
         [
             "DOG",
             "CAT1",
@@ -73,15 +73,15 @@ final class HitchTests: XCTestCase {
             "KITTEN0",
             "DOG"
         ]
-        """
+        """#
         
-        let compassJson = """
+        let compassJson = #"""
         [
             {
                 "validation": "isCat",
                 "allow": [
-                    "/CAT\\d+/",
-                    "/KITTEN\\d+/"
+                    /CAT\d+/,
+                    /KITTEN\d+/
                 ],
                 "disallow": []
             },
@@ -92,7 +92,7 @@ final class HitchTests: XCTestCase {
                 "DOG"
             ]
         ]
-        """
+        """#
         
         let expectedMatches = ^[
             ["KEY": ["CAT1"]],
@@ -108,10 +108,12 @@ final class HitchTests: XCTestCase {
     }
     
     func testComplexMatch0() {
-        let sourceJson = """
+        let sourceJson = #"""
         [
-            "lorem ipsum",
-            "-- character",
+            "-- table --",
+            "Title: The Lord of the Rings",
+            "Author: J.R.R Tolkien",
+            "-- table --",
             "NAME",
             "Gandlaf",
             "-- img --",
@@ -125,7 +127,7 @@ final class HitchTests: XCTestCase {
             "Gandalf is a wizard and a member of the Istari, a group of angelic beings sent to Middle-earth in human form to aid the free peoples in their struggle against the forces of darkness.",
             "He is known for his long grey robes, a wide-brimmed hat, and a staff.",
             "In his initial appearance as Gandalf the Grey, he is depicted as a wise and mysterious figure with a deep knowledge of the world and a strong connection to nature.",
-            "-- character",
+            "-- table --",
             "NAME",
             "Gimli",
             "-- img --",
@@ -142,7 +144,7 @@ final class HitchTests: XCTestCase {
             "Gimli is chosen to represent the dwarves as a member of the Fellowship of the Ring.",
             "Despite initial reservations and tensions between dwarves and elves, Gimli forms an unlikely friendship with Legolas, an elf, during their quest.",
             "Together, they face numerous perils and challenges while journeying through Middle-earth.",
-            "-- character",
+            "-- table --",
             "NAME",
             "Legolas",
             "-- img --",
@@ -157,40 +159,48 @@ final class HitchTests: XCTestCase {
             "He is described as being fair, graceful, and possessing keen senses.",
             "Legolas is known for his exceptional archery skills, often displaying great accuracy and agility with his bow and arrows."
         ]
-        """
+        """#
         
-        let compassJson = """
+        let compassJson = #"""
         [
             {
                 "validation": "isClass",
                 "allow": [
-                    "/(Wizard|Warrior)/"
+                    /(Wizard|Warrior|Elf|Rogue)/
                 ],
                 "disallow": []
             },
             {
                 "validation": "isName",
                 "allow": [
-                    "/\\w+/"
+                    /[\\w\\s]+/
                 ],
                 "disallow": []
             },
             {
                 "validation": "isHitPoints",
                 "allow": [
-                    "/\\d+/"
+                    /\d+/
                 ],
                 "disallow": []
             },
             {
                 "validation": "isStory",
                 "allow": [
-                    "/.*/"
+                    /.*/
                 ],
                 "disallow": [
-                    "/(NAME|CLASS|HP|DESCRIPTION)/"
+                    /(NAME|CLASS|HP|DESCRIPTION)/
                 ]
             },
+            [
+                "// Book Title",
+                ["TITLE", /Title: ([\\w\\s]+)/, "isName"]
+            ],
+            [
+                "// Book Author",
+                ["AUTHOR", /Author: ([\\w\\s]+)/, "isName"]
+            ],
             [
                 "// Fantasy Characters",
                 "NAME",
@@ -208,10 +218,16 @@ final class HitchTests: XCTestCase {
                 "^--"
             ]
         ]
-        """
+        """#
         
         // Note: Legolas will not be matched because -1000 is not valid hitpoints
         let expectedMatches = ^[
+            [
+                "TITLE": ["The Lord of the Rings"]
+            ],
+            [
+                "AUTHOR": ["J.R.R Tolkien"]
+            ],
             [
                 "NAME": ["Gandlaf"],
                 "CLASS": ["Wizard"],
