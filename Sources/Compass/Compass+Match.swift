@@ -66,9 +66,9 @@ extension Query {
         }
         
         // Advance the root index just past the last capture index
-        rootIdx = lastCaptureIdx + 1
+        rootIdx = lastCaptureIdx
         if debug {
-            Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] QUERY SUCCESS: advancing to \(rootIdx)")
+            Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] QUERY SUCCESS: last capture at \(lastCaptureIdx)")
         }
         
         // Merge in our local matches into our global matches
@@ -173,6 +173,7 @@ extension Query {
                                   indent: indent + 1,
                                   matches: subqueryMatches) {
                     lastCaptureIdx = localRootIdx
+                    localRootIdx += 1
                     if shouldRepeat {
                         continue
                     }
@@ -183,7 +184,7 @@ extension Query {
                 return false
             }
             
-            localRootIdx = lastCaptureIdx
+            localRootIdx = lastCaptureIdx + 1
             
             for subqueryMatch in subqueryMatches.iterValues {
                 for key in subqueryMatch.iterKeys {
@@ -356,8 +357,6 @@ extension Compass {
         
         var rootIdx = 0
         while rootIdx < root.count {
-            
-            var didMatchQuery = false
             for query in queries {
                 var debug = false
                 if query.match(compass: self,
@@ -366,15 +365,10 @@ extension Compass {
                                debug: &debug,
                                indent: 0,
                                matches: matches) {
-                    rootIdx -= 1
-                    didMatchQuery = true
                     break
                 }
             }
-            
-            if didMatchQuery == false {
-                rootIdx += 1
-            }
+            rootIdx += 1
         }
         
         return matches
