@@ -16,12 +16,14 @@ import Spanker
 ///         "/CAT\\d+/"
 ///     ],
 ///     "disallow": []
+///     "remove": []
 /// }
 
 public struct Validation {
     public let name: Hitch
     public var allows: [CompassRegex]
     public var disallows: [CompassRegex]
+    public var removes: [CompassRegex]
     public weak var compass: Compass?
     
     init?(element: JsonElement,
@@ -30,6 +32,7 @@ public struct Validation {
         self.compass = compass
         self.allows = []
         self.disallows = []
+        self.removes = []
         
         guard let name: Hitch = element["validation"] else {
             //Compass.print("Malformed validation is missing \"validation\" key: \(element)")
@@ -37,17 +40,9 @@ public struct Validation {
         }
         self.name = name
         
-        guard let allow: JsonElement = element["allow"] else {
-            Compass.print("Malformed validation is missing \"allow\" key: \(element)")
-            return nil
-        }
-        guard let disallow: JsonElement = element["disallow"] else {
-            Compass.print("Malformed validation is missing \"disallow\" key: \(element)")
-            return nil
-        }
-                
-        guard allow.type == .array else {
-            Compass.print("Malformed allow array is not an array: \(element)")
+        guard let allow: JsonElement = element["allow"],
+              allow.type == .array else {
+            Compass.print("Malformed validation is missing or not an array \"allow\" key: \(element)")
             return nil
         }
         for pattern in allow.iterValues {
@@ -63,8 +58,9 @@ public struct Validation {
             self.allows.append(regex)
         }
         
-        guard disallow.type == .array else {
-            Compass.print("Malformed disallow array is not an array: \(element)")
+        guard let disallow: JsonElement = element["disallow"],
+              disallow.type == .array else {
+            Compass.print("Malformed validation is missing or not an array \"disallow\" key: \(element)")
             return nil
         }
         for pattern in disallow.iterValues {
@@ -79,12 +75,37 @@ public struct Validation {
             }
             self.disallows.append(regex)
         }
+        
+        // Optional
+        if let remove: JsonElement = element["remove"],
+           remove.type == .array {
+            for pattern in remove.iterValues {
+                guard let pattern = compass.replaceWithDefinition(pattern),
+                      let pattern = pattern.hitchValue else {
+                    Compass.print("Malformed remove array pattern is not a string: \(element)")
+                    return nil
+                }
+                guard let regex = getCachedRegex(pattern) else {
+                    Compass.print("Malformed remove regex: \(pattern)")
+                    return nil
+                }
+                self.removes.append(regex)
+            }
+        }
+    }
+    
+    @usableFromInline
+    func remove(_ value: Hitch) -> Hitch {
+        for regex in removes {
+            regex.remove(from: value)
+        }
+        return value
     }
     
     @usableFromInline
     func test(_ value: HalfHitch) -> Hitch? {
         guard name != "." else {
-            return value.hitch()
+            return remove(value.hitch())
         }
         
         if let compass = compass,
@@ -98,11 +119,11 @@ public struct Validation {
             }
         }
         if allows.isEmpty {
-            return value.hitch()
+            return remove(value.hitch())
         }
         for allow in allows {
             if allow.test(against: value) {
-                return value.hitch()
+                return remove(value.hitch())
             }
         }
         return nil

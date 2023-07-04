@@ -60,6 +60,34 @@ public struct CompassRegex {
         return results
     }
     
+    public func remove(from: Hitch) {
+        var againstAsString = from.description
+                        
+        while true {
+            let range = NSRange(location: 0, length: againstAsString.count)
+            let matches = regex.matches(in: againstAsString, range: range)
+            guard matches.count > 0 else { break }
+            
+            // extract all ranges and ensure they are orders back to front
+            var ranges: [NSRange] = []
+            for match in matches {
+                for idx in 0..<match.numberOfRanges {
+                    ranges.append(match.range(at: idx))
+                }
+            }
+            ranges.sort { lhs, rhs in
+                return lhs.upperBound < rhs.lowerBound
+            }
+            for range in ranges {
+                if let range = Range(range, in: againstAsString) {
+                    againstAsString.removeSubrange(range)
+                }
+            }
+        }
+        
+        from.replace(with: againstAsString)
+    }
+    
     public func test(against: HalfHitch) -> Bool {
         let againstAsString = against.description
 
