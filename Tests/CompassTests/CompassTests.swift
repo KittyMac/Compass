@@ -18,13 +18,13 @@ final class HitchTests: XCTestCase {
                 "!*",
                 ".",
                 "DEBUG",
-                /line(.*)/i,
+                /line(.*)/igm,
                 ["KEY", "()", "IsString"]
             ]
         ]
         """#
         guard let compass = Compass(json: compassJson) else { XCTFail(); return }
-        XCTAssertEqual(compass.description, #"[["// simple match","line1","!--","*--","*","?","!*",".","DEBUG",/line(.*)/i,["KEY","()","IsString"]]]"#)
+        XCTAssertEqual(compass.description, #"[["// simple match","line1","!--","*--","*","?","!*",".","DEBUG",/line(.*)/igm,["KEY","()","IsString"]]]"#)
     }
     
     func testSimpleMatch0() {
@@ -107,6 +107,33 @@ final class HitchTests: XCTestCase {
         XCTAssertEqual(matches.sortKeys().description, expectedMatches.sortKeys().description)
     }
     
+    func testSimpleMatchRegex0() {
+        let sourceJson = #"""
+        [
+            "-- table --"
+        ]
+        """#
+        
+        let compassJson = #"""
+        [
+            [
+                "// capture the name of all structures",
+                ["STRUCTURE", /-- (\w+) --/i, "."],
+            ]
+        ]
+        """#
+        
+        let expectedMatches = ^[
+            ["STRUCTURE": ["table"]]
+        ]
+        
+        guard let compass = Compass(json: compassJson) else { XCTFail(); return }
+        
+        guard let matches = compass.matches(against: sourceJson) else { XCTFail(); return }
+        
+        XCTAssertEqual(matches.sortKeys().description, expectedMatches.sortKeys().description)
+    }
+    
     func testComplexMatch0() {
         let sourceJson = #"""
         [
@@ -173,7 +200,7 @@ final class HitchTests: XCTestCase {
             {
                 "validation": "isName",
                 "allow": [
-                    /[\\w\\s]+/
+                    /[\.\w\s]+/
                 ],
                 "disallow": []
             },
@@ -186,20 +213,18 @@ final class HitchTests: XCTestCase {
             },
             {
                 "validation": "isStory",
-                "allow": [
-                    /.*/
-                ],
+                "allow": [],
                 "disallow": [
                     /(NAME|CLASS|HP|DESCRIPTION)/
                 ]
             },
             [
                 "// Book Title",
-                ["TITLE", /Title: ([\\w\\s]+)/, "isName"]
+                ["TITLE", /Title: ([\.\w\s]+)/, "isName"]
             ],
             [
                 "// Book Author",
-                ["AUTHOR", /Author: ([\\w\\s]+)/, "isName"]
+                ["AUTHOR", /Author: ([\.\w\s]+)/, "isName"]
             ],
             [
                 "// Fantasy Characters",

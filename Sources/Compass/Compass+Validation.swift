@@ -7,6 +7,7 @@ import Spanker
 /// At the time of this writing, this is done by using a series
 /// of allow/disallow regex. For a value to pass validation, it must
 /// succeed against AT LEAST ONE of the allow regex and must not
+///  (an empty allow array will always succeed)
 /// succeed against ANY of the disallow regex.
 ///
 /// {
@@ -19,8 +20,8 @@ import Spanker
 
 public struct Validation {
     public let name: Hitch
-    public var allows: [NSRegularExpression]
-    public var disallows: [NSRegularExpression]
+    public var allows: [CompassRegex]
+    public var disallows: [CompassRegex]
     
     init?(element: JsonElement) {
        
@@ -82,16 +83,16 @@ public struct Validation {
             return true
         }
         
-        let valueAsString = value.description
-        let valueRange = NSRange(location: 0, length: value.count)
-        
         for disallow in disallows {
-            if disallow.firstMatch(in: valueAsString, range: valueRange) != nil {
+            if disallow.test(against: value) {
                 return false
             }
         }
+        if allows.isEmpty {
+            return true
+        }
         for allow in allows {
-            if allow.firstMatch(in: valueAsString, range: valueRange) != nil {
+            if allow.test(against: value) {
                 return true
             }
         }

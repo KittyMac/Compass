@@ -39,16 +39,7 @@ extension QueryPart {
             hitch.append(.doubleQuote)
             break
         case .regex:
-            hitch.append(.forwardSlash)
-            if let regex = regex {
-                hitch.append(regex.pattern)
-            }
-            hitch.append(.forwardSlash)
-            if let regex = regex {
-                if regex.options.contains(.caseInsensitive) {
-                    hitch.append(.i)
-                }
-            }
+            regex?.exportTo(hitch: hitch)
             break
         case .capture:
             hitch.append(.openBrace)
@@ -66,11 +57,7 @@ extension QueryPart {
                 hitch.append(.doubleQuote)
             } else if capturePartType == .regex,
                       let regex = capturePartRegex {
-                hitch.append(.doubleQuote)
-                hitch.append(.forwardSlash)
-                hitch.append(regex.pattern)
-                hitch.append(.forwardSlash)
-                hitch.append(.doubleQuote)
+                regex.exportTo(hitch: hitch)
             } else {
                 hitch.append("MISSING_CAPTURE_PART")
             }

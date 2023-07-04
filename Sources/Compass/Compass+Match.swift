@@ -246,12 +246,26 @@ extension Query {
                 lastCaptureIdx = localRootIdx
                 localRootIdx += 1
                 return true
-            } else if capturePartType == .regex {
-                if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] REGEX CAPTURE: [\(captureKey)] \(rootValue)") }
-                fatalError("TO BE IMPLEMENTED")
-                lastCaptureIdx = localRootIdx
-                localRootIdx += 1
-                return true
+            } else if capturePartType == .regex,
+                      let regex = queryPart.regex {
+                
+                let matches = regex.matches(against: rootValue)
+                if matches.count > 0 {
+                    if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] REGEX CAPTURE: [\(captureKey)] \(rootValue)") }
+                    
+                    for match in matches {
+                        capture(key: captureKey,
+                                value: match.hitch(),
+                                matches: localMatch)
+                    }
+                                        
+                    lastCaptureIdx = localRootIdx
+                    localRootIdx += 1
+                    return true
+                }
+                
+                if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] FAILED REGEX \(regex): [\(captureKey)] \(rootValue)") }
+                return false
             } else {
                 Compass.print("Malformed capture of part type \(capturePartType) encountered: \(self)")
                 return false

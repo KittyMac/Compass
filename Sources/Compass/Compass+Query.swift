@@ -79,7 +79,7 @@ public struct QueryPart {
     // Simple query parts have a type and an optional value
     public let type: PartType
     public let value: Hitch?
-    public let regex: NSRegularExpression?
+    public let regex: CompassRegex?
     
     public let subquery: Query?
     
@@ -89,7 +89,7 @@ public struct QueryPart {
     // a valid value)
     public let captureKey: Hitch?
     public let capturePartType: PartType?
-    public let capturePartRegex: NSRegularExpression?
+    public let capturePartRegex: CompassRegex?
     public let captureValidationKey: Hitch?
         
     init?(element: JsonElement) {
@@ -152,7 +152,7 @@ public struct QueryPart {
         // other token
         var queryPartType: PartType?
         var queryPartValue: Hitch?
-        var queryPartRegex: NSRegularExpression?
+        var queryPartRegex: CompassRegex?
         if element.type == .regex,
            let value = element.halfHitchValue {
             queryPartType = .regex
