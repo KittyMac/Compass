@@ -34,7 +34,23 @@ extension Query {
         
         for queryIdx in 0..<queryParts.count {
             let queryPart = queryParts[queryIdx]
-            let nextQueryPart = queryIdx + 1 < queryParts.count ? queryParts[queryIdx + 1] : nil
+            
+            var nextQueryPart: QueryPart? = nil
+            
+            // Next part is used to know when to end. It doesn't make sense if nextPart is
+            // a skipping operation, so advance once more maybe we get something real to match
+            for nextQueryPartIdx in queryIdx+1..<queryIdx+3 {
+                guard nextQueryPartIdx < queryParts.count else { break }
+                let checkNextQueryPart = queryParts[nextQueryPartIdx]
+                guard checkNextQueryPart.type != .skip &&
+                        checkNextQueryPart.type != .skipAll &&
+                        checkNextQueryPart.type != .skipOne &&
+                        checkNextQueryPart.type != .skipStructure else {
+                    continue
+                }
+                nextQueryPart = checkNextQueryPart
+                break
+            }
             
             if match(compass: compass,
                      queryPart: queryPart,
@@ -266,14 +282,12 @@ extension Query {
                 if validation.test(stringValue.halfhitch()) {
                     if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] STATIC CAPTURE: [\(captureKey)] \(stringValue)") }
                     capture(key: captureKey,
-                            value: rootValue.hitch(),
+                            value: stringValue,
                             matches: localMatch)
                 } else {
                     if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] FAILED VALIDATION \(validation.name): [\(captureKey)] \(stringValue)") }
                     return false
                 }
-                lastCaptureIdx = localRootIdx
-                localRootIdx += 1
                 return true
             } else if capturePartType == .regex,
                       let regex = queryPart.regex {
