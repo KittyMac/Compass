@@ -192,7 +192,20 @@ final class HitchTests: XCTestCase {
             "DESCRIPTION",
             "Legolas is a prince of the Woodland Realm of Mirkwood and the son of Thranduil, the Elvenking.",
             "He is described as being fair, graceful, and possessing keen senses.",
-            "Legolas is known for his exceptional archery skills, often displaying great accuracy and agility with his bow and arrows."
+            "Legolas is known for his exceptional archery skills, often displaying great accuracy and agility with his bow and arrows.",
+            "-- table --",
+            "NAME",
+            "Samwise",
+            "-- img --",
+            "-- http://www.lotr.com/samwise.png --",
+            "-- endimg --",
+            "CLASS",
+            "Hobbit",
+            "HP",
+            "47",
+            "DESCRIPTION",
+            "Samwise Gamgee proves to be an essential character in the story, providing both physical and emotional support to Frodo.",
+            "He displays great resilience and resourcefulness, overcoming various challenges alongside his friend. Sam is known for his love of gardening, his simple yet profound wisdom, and his unwavering faith in Frodo's mission.",
         ]
         """#
         
@@ -202,7 +215,7 @@ final class HitchTests: XCTestCase {
             {
                 "validation": "isClass",
                 "allow": [
-                    /(Wizard|Warrior|Elf|Rogue)/
+                    /(Wizard|Warrior|Elf|Rogue|Hobbit)/
                 ],
                 "disallow": []
             },
@@ -210,13 +223,6 @@ final class HitchTests: XCTestCase {
                 "validation": "isName",
                 "allow": [
                     /[\.\w\s]+/
-                ],
-                "disallow": []
-            },
-            {
-                "validation": "isHitPoints",
-                "allow": [
-                    /\d+/
                 ],
                 "disallow": []
             },
@@ -257,7 +263,8 @@ final class HitchTests: XCTestCase {
         ]
         """#
         
-        // Note: Legolas will not be matched because -1000 is not valid hitpoints
+        // Note: Legolas will be matched because our custom validation will correct the invalid -1000
+        // Note: Samwise will be matched but out custom validation will truncate hitpoints to be divisible by 10
         let expectedMatches = ^[
             [
                 "TITLE": ["The Lord of the Rings"]
@@ -289,10 +296,34 @@ final class HitchTests: XCTestCase {
                     "Despite initial reservations and tensions between dwarves and elves, Gimli forms an unlikely friendship with Legolas, an elf, during their quest.",
                     "Together, they face numerous perils and challenges while journeying through Middle-earth."
                 ]
+            ],
+            [
+                "NAME": ["Samwise"],
+                "IMAGE": ["http://www.lotr.com/samwise.png"],
+                "CLASS": ["Hobbit"],
+                "HITPOINTS": ["40"],
+                "STORY": [
+                    "Samwise Gamgee proves to be an essential character in the story, providing both physical and emotional support to Frodo.",
+                    "He displays great resilience and resourcefulness, overcoming various challenges alongside his friend. Sam is known for his love of gardening, his simple yet profound wisdom, and his unwavering faith in Frodo's mission."
+                ]
             ]
         ]
 
         guard let compass = Compass(json: compassJson) else { XCTFail(); return }
+        
+        compass.add(validation: "isHitPoints") { value, info in
+            guard var hitpoints = value.toInt() else { return nil }
+            
+            // Don't allow negative value hitpoints
+            if hitpoints <= 0 {
+                return nil
+            }
+            
+            // Round all other hitpoints to the nearest 10
+            hitpoints = (hitpoints / 10) * 10
+            
+            return "{0}" <<< [hitpoints]
+        }
         
         guard let matches = compass.matches(against: sourceJson) else { XCTFail(); return }
         

@@ -22,11 +22,12 @@ public struct Validation {
     public let name: Hitch
     public var allows: [CompassRegex]
     public var disallows: [CompassRegex]
+    public weak var compass: Compass?
     
     init?(element: JsonElement,
           compass: Compass) {
        
-        
+        self.compass = compass
         self.allows = []
         self.disallows = []
         
@@ -81,24 +82,29 @@ public struct Validation {
     }
     
     @usableFromInline
-    func test(_ value: HalfHitch) -> Bool {
+    func test(_ value: HalfHitch) -> Hitch? {
         guard name != "." else {
-            return true
+            return value.hitch()
+        }
+        
+        if let compass = compass,
+           let customValidation = compass.customValidations[name] {
+            return customValidation(value, self)
         }
         
         for disallow in disallows {
             if disallow.test(against: value) {
-                return false
+                return nil
             }
         }
         if allows.isEmpty {
-            return true
+            return value.hitch()
         }
         for allow in allows {
             if allow.test(against: value) {
-                return true
+                return value.hitch()
             }
         }
-        return false
+        return nil
     }
 }

@@ -6,11 +6,15 @@ import Spanker
 // a "json regex", which Compass compiles into a more optimized format. You can then
 // run this compass against different json and it will return the matches found.
 
+public typealias CompassValidation = (HalfHitch, Validation) -> Hitch?
+
 public final class Compass {
     
     public var queries: [Query] = []
     public var validations: [Hitch: Validation] = [:]
     public var definitions: [Hitch: Definition] = [:]
+    
+    public var customValidations: [Hitch: CompassValidation] = [:]
     
     public init?(queries root: JsonElement) {
         // Note: the memory used by element will be deallocated after this call, so it it
@@ -67,6 +71,19 @@ public final class Compass {
         self.init(json: Hitch(string: json).halfhitch())
     }
     
+    public func add(validation name: Hitch,
+                    callback: @escaping CompassValidation) {
+        customValidations[name] = callback
+        
+        // we need to ensure there is an existing Validation by this name
+        if validations[name] == nil {
+            validations[name] = Validation(element: ^[
+                "validation": name,
+                "allow": [],
+                "disallow": []
+            ], compass: self)
+        }
+    }
     
     public func matches(against: JsonElement) -> JsonElement? {
         return matches(against: against, queries: queries)

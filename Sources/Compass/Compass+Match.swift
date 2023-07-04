@@ -264,10 +264,10 @@ extension Query {
             
             if capturePartType == .captureString {
                 // We capture the whole string, whatever it is, from the root element
-                if validation.test(rootValue) {
+                if let result = validation.test(rootValue) {
                     if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] ANY CAPTURE: [\(captureKey)] \(rootValue)") }
                     capture(key: captureKey,
-                            value: rootValue.hitch(),
+                            value: result,
                             matches: localMatch)
                 } else {
                     if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] FAILED VALIDATION \(validation.name): [\(captureKey)] \(rootValue)") }
@@ -279,10 +279,10 @@ extension Query {
             } else if capturePartType == .string,
                       let stringValue = queryPart.value {
                 // We capture the whole string, whatever it is, from the capture query
-                if validation.test(stringValue.halfhitch()) {
+                if let result = validation.test(stringValue.halfhitch()) {
                     if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] STATIC CAPTURE: [\(captureKey)] \(stringValue)") }
                     capture(key: captureKey,
-                            value: stringValue,
+                            value: result,
                             matches: localMatch)
                 } else {
                     if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] FAILED VALIDATION \(validation.name): [\(captureKey)] \(stringValue)") }
@@ -296,10 +296,10 @@ extension Query {
                 if matches.count > 0 {
                     for match in matches {
                         // We capture the whole string, whatever it is, from the capture query
-                        if validation.test(match) {
+                        if let result = validation.test(match) {
                             if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] REGEX CAPTURE: [\(captureKey)] \(match)") }
                             capture(key: captureKey,
-                                    value: match.hitch(),
+                                    value: result,
                                     matches: localMatch)
                         } else {
                             if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] FAILED VALIDATION \(validation.name): [\(captureKey)] \(match)") }
