@@ -56,21 +56,23 @@ import Spanker
 @usableFromInline let partDebug: HalfHitch = "DEBUG";
 
 public enum PartType: Int {
-    case capture = 0
-    case string = 1
-    case regex = 2
+    case capture
+    case string
+    case stringStartsWith
+    case stringContains
+    case regex
 
-    case comment = 3
-    case notStructure = 4
-    case skipStructure = 5
-    case `repeat` = 10
-    case repeatUntilStructure = 11
-    case captureString = 12
-    case skip = 13
-    case skipOne = 14
-    case skipAll = 15
-    case any = 16
-    case debug = 17
+    case comment
+    case notStructure
+    case skipStructure
+    case `repeat`
+    case repeatUntilStructure
+    case captureString
+    case skip
+    case skipOne
+    case skipAll
+    case any
+    case debug
 }
 
 public struct QueryPart {
@@ -167,8 +169,24 @@ public struct QueryPart {
             } else if value == partDebug {
                 queryPartType = .debug
             } else {
-                queryPartType = .string
-                queryPartValue = value.hitch()
+                if value.starts(with: "^") {
+                    queryPartType = .stringStartsWith
+                    guard let substring = value.substring(1, value.count) else {
+                        Compass.print("Failed to extract substring for element: \(element)")
+                        return nil
+                    }
+                    queryPartValue = substring
+                } else if value.starts(with: "~") {
+                    queryPartType = .stringContains
+                    guard let substring = value.substring(1, value.count) else {
+                        Compass.print("Failed to extract substring for element: \(element)")
+                        return nil
+                    }
+                    queryPartValue = substring
+                } else {
+                    queryPartType = .string
+                    queryPartValue = value.hitch()
+                }
             }
         }
         

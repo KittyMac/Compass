@@ -21,9 +21,6 @@ extension Query {
                root: JsonElement,
                rootIdx: inout Int,
                matches: JsonElement) -> Bool {
-        // TODO: we should be able to optimize a little by skipping queries which
-        // need more matches than the root has matches for; commenting out because the
-        // following guard is buggy
         guard rootIdx + minimumPartsCount <= root.count else {
             // Compass.print("Skipping query because \(rootIdx + minimumPartsCount) > \(root.count)")
             return false
@@ -34,7 +31,7 @@ extension Query {
         var lastCaptureIdx = rootIdx
         let localMatch = ^[:]
         for queryIdx in 0..<queryParts.count {
-            guard let rootValue = root[localRootIdx]?.halfHitchValue else {
+            guard var rootValue = root[localRootIdx]?.halfHitchValue else {
                 Compass.print("Unexpected non-string value at root index \(localRootIdx): \(root[element: localRootIdx]?.description ?? "nil")")
                 return false
             }
@@ -55,6 +52,17 @@ extension Query {
                     Compass.print(tag: "DEBUG", "[\(localRootIdx)] -- BEGIN DEBUG QUERY --")
                 }
                 break
+                
+            case .skipStructure:
+                while rootValue.starts(with: "-- ") {
+                    localRootIdx += 1
+                    guard let nextRootValue = root[localRootIdx]?.halfHitchValue else {
+                        Compass.print("Unexpected non-string value at root index \(localRootIdx): \(root[element: localRootIdx]?.description ?? "nil")")
+                        return false
+                    }
+                    rootValue = nextRootValue
+                }
+                break
             
             case .string:
                 guard let queryValue = queryPart.value else {
@@ -62,6 +70,30 @@ extension Query {
                     return false
                 }
                 guard queryValue == rootValue else {
+                    if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] failed string match \(queryValue) != \(rootValue)") }
+                    return false
+                }
+                if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] MATCH: \(queryValue) == \(rootValue)") }
+                localRootIdx += 1
+                
+            case .stringStartsWith:
+                guard let queryValue = queryPart.value else {
+                    Compass.print("Malformed query part with missing value encountered: \(self)")
+                    return false
+                }
+                guard rootValue.starts(with: queryValue) else {
+                    if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] failed string match \(queryValue) != \(rootValue)") }
+                    return false
+                }
+                if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] MATCH: \(queryValue) == \(rootValue)") }
+                localRootIdx += 1
+                
+            case .stringContains:
+                guard let queryValue = queryPart.value else {
+                    Compass.print("Malformed query part with missing value encountered: \(self)")
+                    return false
+                }
+                guard rootValue.contains(queryValue) else {
                     if debug { Compass.print(tag: "DEBUG", "[\(localRootIdx)] failed string match \(queryValue) != \(rootValue)") }
                     return false
                 }
@@ -128,7 +160,6 @@ extension Query {
                 /*
             case .regex:
             case .notStructure:
-            case .skipStructure:
             case .repeat:
             case .repeatUntilStructure:
             case .captureString:

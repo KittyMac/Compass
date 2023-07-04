@@ -22,6 +22,22 @@ extension QueryPart {
             }
             hitch.append(.doubleQuote)
             break
+        case .stringStartsWith:
+            hitch.append(.doubleQuote)
+            hitch.append(.carrat)
+            if let value = value {
+                hitch.append(value)
+            }
+            hitch.append(.doubleQuote)
+            break
+        case .stringContains:
+            hitch.append(.doubleQuote)
+            hitch.append(.tilde)
+            if let value = value {
+                hitch.append(value)
+            }
+            hitch.append(.doubleQuote)
+            break
         case .regex:
             hitch.append(.doubleQuote)
             hitch.append(.forwardSlash)
