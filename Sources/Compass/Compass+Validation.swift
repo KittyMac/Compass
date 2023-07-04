@@ -23,14 +23,15 @@ public struct Validation {
     public var allows: [CompassRegex]
     public var disallows: [CompassRegex]
     
-    init?(element: JsonElement) {
+    init?(element: JsonElement,
+          compass: Compass) {
        
         
         self.allows = []
         self.disallows = []
         
         guard let name: Hitch = element["validation"] else {
-            Compass.print("Malformed validation is missing \"validation\" key: \(element)")
+            //Compass.print("Malformed validation is missing \"validation\" key: \(element)")
             return nil
         }
         self.name = name
@@ -43,18 +44,19 @@ public struct Validation {
             Compass.print("Malformed validation is missing \"disallow\" key: \(element)")
             return nil
         }
-        
+                
         guard allow.type == .array else {
             Compass.print("Malformed allow array is not an array: \(element)")
             return nil
         }
         for pattern in allow.iterValues {
-            guard let pattern = pattern.hitchValue else {
+            guard let pattern = compass.replaceWithDefinition(pattern),
+                  let pattern = pattern.hitchValue else {
                 Compass.print("Malformed allow array pattern is not a string: \(element)")
                 return nil
             }
             guard let regex = getCachedRegex(pattern) else {
-                Compass.print("Malformed allow regex: \(element)")
+                Compass.print("Malformed allow regex: \(pattern)")
                 return nil
             }
             self.allows.append(regex)
@@ -65,12 +67,13 @@ public struct Validation {
             return nil
         }
         for pattern in disallow.iterValues {
-            guard let pattern = pattern.hitchValue else {
+            guard let pattern = compass.replaceWithDefinition(pattern),
+                  let pattern = pattern.hitchValue else {
                 Compass.print("Malformed disallow array pattern is not a string: \(element)")
                 return nil
             }
             guard let regex = getCachedRegex(pattern) else {
-                Compass.print("Malformed disallow regex: \(element)")
+                Compass.print("Malformed disallow regex: \(pattern)")
                 return nil
             }
             self.disallows.append(regex)

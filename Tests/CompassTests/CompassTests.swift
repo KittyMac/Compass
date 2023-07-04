@@ -2,6 +2,7 @@ import XCTest
 
 import Compass
 import Spanker
+import Hitch
 
 final class HitchTests: XCTestCase {
     
@@ -19,12 +20,19 @@ final class HitchTests: XCTestCase {
                 ".",
                 "DEBUG",
                 /line(.*)/igm,
-                ["KEY", "()", "IsString"]
+                ["KEY", "()", "IsString"],
+                [
+                    "REPEAT",
+                    ["KEY", "()", "IsString"],
+                ],
+                [
+                    ["KEY", "()", "IsString"],
+                ],
             ]
         ]
         """#
         guard let compass = Compass(json: compassJson) else { XCTFail(); return }
-        XCTAssertEqual(compass.description, #"[["// simple match","line1","!--","*--","*","?","!*",".","DEBUG",/line(.*)/igm,["KEY","()","IsString"]]]"#)
+        XCTAssertEqual(compass.description, #"[["// simple match","line1","!--","*--","*","?","!*",".","DEBUG",/line(.*)/igm,["KEY","()","IsString"],["REPEAT",["KEY","()","IsString"]],[["KEY","()","IsString"]]]]"#)
     }
     
     func testSimpleMatch0() {
@@ -282,5 +290,17 @@ final class HitchTests: XCTestCase {
         guard let matches = compass.matches(against: sourceJson) else { XCTFail(); return }
         
         XCTAssertEqual(matches.sortKeys().description, expectedMatches.sortKeys().description)
+    }
+    
+    func testRealSample0() {
+        guard let sourceJson = Hitch(contentsOfFile: "/Users/rjbowli/Development/data/test/sample0.json") else { return }
+        guard let compassJson = Hitch(contentsOfFile: "/Users/rjbowli/Development/data/test/compass.json") else { return }
+        guard let resultsJson = Hitch(contentsOfFile: "/Users/rjbowli/Development/data/test/results0.json") else { return }
+                
+        guard let compass = Compass(json: compassJson) else { XCTFail(); return }
+        
+        guard let matches = compass.matches(against: sourceJson) else { XCTFail(); return }
+        
+        XCTAssertEqual(matches.sortKeys().description, Spanker.parse(halfhitch: resultsJson.halfhitch())!.description)
     }
 }

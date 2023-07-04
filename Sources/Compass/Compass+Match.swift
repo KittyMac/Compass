@@ -72,7 +72,7 @@ extension Query {
                debug: inout Bool,
                indent: Int,
                localMatch: JsonElement) -> Bool {
-        guard localRootIdx < root.count else { return true }
+        guard localRootIdx < root.count else { return false }
         
         guard var rootValue = root[localRootIdx]?.halfHitchValue else {
             Compass.print("Unexpected non-string value at root index \(localRootIdx): \(root[element: localRootIdx]?.description ?? "nil")")
@@ -113,33 +113,39 @@ extension Query {
             if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] MATCH NOT STRUCTURE: \(rootValue)") }
             localRootIdx += 1
             break
-            
-        case .repeat, .repeatUntilStructure:
+        
+        case .subquery, .repeat, .repeatUntilStructure:
             let subqueryMatches = ^[]
             let endOnStructure = queryPart.type == .repeatUntilStructure
+            let shouldRepeat = queryPart.type != .subquery
             
             while localRootIdx < root.count {
                 
-                // end on structure?
-                if endOnStructure,
-                   let rootValue = root[localRootIdx]?.halfHitchValue,
-                   rootValue.starts(with: "-- ") {
-                    break
-                }
-                
-                // are we the next part?
-                var nodebug = false
-                if let nextQueryPart = nextQueryPart,
-                   match(compass: compass,
-                         queryPart: nextQueryPart,
-                         nextQueryPart: nil,
-                         root: root,
-                         localRootIdx: &localRootIdx,
-                         lastCaptureIdx: &lastCaptureIdx,
-                         debug: &nodebug,
-                         indent: indent + 1,
-                         localMatch: localMatch) {
-                    break
+                if shouldRepeat {
+                    // end on structure?
+                    if endOnStructure,
+                       let rootValue = root[localRootIdx]?.halfHitchValue,
+                       rootValue.starts(with: "-- ") {
+                        break
+                    }
+                    
+                    // are we the next part?
+                    var nextPartNoDebug = false
+                    var nextPartIdx = localRootIdx
+                    var nextPartCaptureIdx = localRootIdx
+                    let nextPartMatches = ^[]
+                    if let nextQueryPart = nextQueryPart,
+                       match(compass: compass,
+                             queryPart: nextQueryPart,
+                             nextQueryPart: nil,
+                             root: root,
+                             localRootIdx: &nextPartIdx,
+                             lastCaptureIdx: &nextPartCaptureIdx,
+                             debug: &nextPartNoDebug,
+                             indent: indent + 1,
+                             localMatch: nextPartMatches) {
+                        break
+                    }
                 }
                 
                 // match the subquery?
@@ -151,11 +157,14 @@ extension Query {
                                   indent: indent + 1,
                                   matches: subqueryMatches) {
                     lastCaptureIdx = localRootIdx
-                    continue
+                    if shouldRepeat {
+                        continue
+                    }
+                    break
                 }
                 
                 // otherwise we end
-                break
+                return false
             }
             
             localRootIdx = lastCaptureIdx
@@ -173,6 +182,18 @@ extension Query {
             }
             
             break
+            
+        case .regex:
+            guard let queryRegex = queryPart.regex else {
+                Compass.print("Malformed query part with missing regex encountered: \(self)")
+                return false
+            }
+            guard queryRegex.test(against: rootValue) else {
+                if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] failed regex match \(queryRegex) against \(rootValue)") }
+                return false
+            }
+            if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] REGEX MATCH: \(queryRegex) against \(rootValue)") }
+            localRootIdx += 1
         
         case .string:
             guard let queryValue = queryPart.value else {
@@ -183,7 +204,7 @@ extension Query {
                 if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] failed string match \(queryValue) != \(rootValue)") }
                 return false
             }
-            if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] MATCH: \(queryValue) == \(rootValue)") }
+            if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] STRING MATCH: \(queryValue) == \(rootValue)") }
             localRootIdx += 1
             
         case .stringStartsWith:
@@ -195,7 +216,7 @@ extension Query {
                 if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] failed string match \(queryValue) != \(rootValue)") }
                 return false
             }
-            if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] MATCH: \(queryValue) == \(rootValue)") }
+            if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] STRING STARTS WITH: \(queryValue) == \(rootValue)") }
             localRootIdx += 1
             
         case .stringContains:
@@ -207,7 +228,7 @@ extension Query {
                 if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] failed string match \(queryValue) != \(rootValue)") }
                 return false
             }
-            if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] MATCH: \(queryValue) == \(rootValue)") }
+            if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] STRING CONTAINS: \(queryValue) == \(rootValue)") }
             localRootIdx += 1
         
         case .capture:
@@ -259,12 +280,17 @@ extension Query {
                 
                 let matches = regex.matches(against: rootValue)
                 if matches.count > 0 {
-                    if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] REGEX CAPTURE: [\(captureKey)] \(rootValue)") }
-                    
                     for match in matches {
-                        capture(key: captureKey,
-                                value: match.hitch(),
-                                matches: localMatch)
+                        // We capture the whole string, whatever it is, from the capture query
+                        if validation.test(match) {
+                            if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] REGEX CAPTURE: [\(captureKey)] \(match)") }
+                            capture(key: captureKey,
+                                    value: match.hitch(),
+                                    matches: localMatch)
+                        } else {
+                            if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] FAILED VALIDATION \(validation.name): [\(captureKey)] \(match)") }
+                            return false
+                        }
                     }
                                         
                     lastCaptureIdx = localRootIdx

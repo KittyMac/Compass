@@ -67,6 +67,7 @@ public enum PartType: Int {
     case skipStructure
     case `repeat`
     case repeatUntilStructure
+    case subquery
     case captureString
     case skip
     case skipOne
@@ -92,16 +93,43 @@ public struct QueryPart {
     public let capturePartRegex: CompassRegex?
     public let captureValidationKey: Hitch?
         
-    init?(element: JsonElement) {
+    init?(element: JsonElement,
+          compass: Compass) {
+        guard let element = compass.replaceWithDefinition(element) else {
+            Compass.print("Failed to replace definition: \(element)")
+            return nil
+        }
+        
         // capture group or a subquery
         if element.type == .array {
-            if element[0] == partRepeat || element[0] == partRepeatUntilStructure {
+            // a capture element is a 3 part array with strings and/or regex only
+            var isCaptureGroup = false
+            
+            if element.count == 3,
+               let type0 = element[0]?.type,
+               let type1 = element[1]?.type,
+               let type2 = element[2]?.type,
+               type0 == .string,
+               type1 == .string || type1 == .regex,
+               type2 == .string {
+                isCaptureGroup = true
+            }
+            
+            if isCaptureGroup == false {
                 // this is a subquery. Our part is set to the repeat and subquery is
                 // set to the rest of me
                 
-                self.type = element[0] == partRepeat ? .repeat : .repeatUntilStructure
+                var provisionalType: PartType = .subquery
+                if element[0] == partRepeat {
+                    provisionalType = .repeat
+                } else if element[0] == partRepeatUntilStructure {
+                    provisionalType = .repeatUntilStructure
+                }
+                
+                self.type = provisionalType
                 self.value = nil
-                self.subquery = Query(element: element)
+                self.subquery = Query(element: element,
+                                      compass: compass)
                 self.regex = nil
                 self.captureKey = nil
                 self.capturePartType = nil
@@ -127,7 +155,8 @@ public struct QueryPart {
                 Compass.print("Malformed query capture detected (failure to extract capture part): \(element)")
                 return nil
             }
-            guard let capturePart = QueryPart(element: capturePartElement) else {
+            guard let capturePart = QueryPart(element: capturePartElement,
+                                              compass: compass) else {
                 Compass.print("Malformed query capture detected (failure to part query part): \(element)")
                 return nil
             }
@@ -240,7 +269,8 @@ public struct Query {
     public let queryParts: [QueryPart]
     public let minimumPartsCount: Int
         
-    init?(element: JsonElement) {
+    init?(element: JsonElement,
+          compass: Compass) {
         guard element.type == .array else {
             Compass.print("Unexpected query item detected: \(element)")
             return nil
@@ -252,7 +282,8 @@ public struct Query {
             guard elementPart.halfHitchValue != partRepeat && elementPart.halfHitchValue != partRepeatUntilStructure else {
                 continue
             }
-            guard let queryPart = QueryPart(element: elementPart) else {
+            guard let queryPart = QueryPart(element: elementPart,
+                                            compass: compass) else {
                 return nil
             }
             queryParts.append(queryPart)

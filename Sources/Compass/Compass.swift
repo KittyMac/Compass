@@ -10,6 +10,7 @@ public final class Compass {
     
     public var queries: [Query] = []
     public var validations: [Hitch: Validation] = [:]
+    public var definitions: [Hitch: Definition] = [:]
     
     public init?(queries root: JsonElement) {
         // Note: the memory used by element will be deallocated after this call, so it it
@@ -21,21 +22,36 @@ public final class Compass {
         guard root.type == .array else { return nil }
         
         for queryElement in root.iterValues {
-            if queryElement.type == .dictionary,
-               let validation = Validation(element: queryElement) {
-                validations[validation.name] = validation
+            if queryElement.type == .string && queryElement.halfHitchValue?.starts(with: "//") == true {
                 continue
             }
+            if queryElement.type == .dictionary {
+                if let validation = Validation(element: queryElement,
+                                               compass: self) {
+                    validations[validation.name] = validation
+                    continue
+                }
+                if let definition = Definition(element: queryElement,
+                                               compass: self) {
+                    definitions[definition.name] = definition
+                    continue
+                }
+                
+                Compass.print("Malformed object at query level (should this be a Validation or a Definition?): \(queryElement)")
+                return nil
+            }
             if queryElement.type == .array,
-               let query = Query(element: queryElement) {
+               let query = Query(element: queryElement,
+                                 compass: self) {
                 queries.append(query)
                 continue
             }
             
             Compass.print("Failed to process query: \(queryElement)")
+            return nil
         }
         
-        validations["."] = Validation(element: ^["validation":".","allow":[],"disallow":[]])
+        validations["."] = Validation(element: ^["validation":".","allow":[],"disallow":[]], compass: self)
     }
     
     public convenience init?(json: HalfHitch) {
@@ -69,5 +85,15 @@ public final class Compass {
         return matches(against: Hitch(string: against).halfhitch())
     }
     
+    public func replaceWithDefinition(_ element: JsonElement) -> JsonElement? {
+        guard let value = element.halfHitchValue,
+              value.starts(with: "$") else { return element }
+        
+       if let definition = definitions[value.hitch()] {
+           return definition.element
+       }
+       Compass.print("Unable to find definition: \(element)")
+       return nil
+    }
     
 }

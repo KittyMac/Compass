@@ -31,7 +31,9 @@ public struct CompassRegex {
     }
     
     public func matches(against: HalfHitch) -> [HalfHitch] {
-        let range = NSRange(location: 0, length: against.count)
+        let againstAsString = against.description
+        
+        let range = NSRange(location: 0, length: againstAsString.count)
         var options: NSRegularExpression.MatchingOptions = []
         
         if global == false {
@@ -39,7 +41,7 @@ public struct CompassRegex {
         }
         
         var results: [HalfHitch] = []
-        let matches = regex.matches(in: against.description, options: options, range: range)
+        let matches = regex.matches(in: againstAsString, options: options, range: range)
         if matches.count > 0 {
             
             for match in matches {
@@ -59,14 +61,16 @@ public struct CompassRegex {
     }
     
     public func test(against: HalfHitch) -> Bool {
-        let range = NSRange(location: 0, length: against.count)
+        let againstAsString = against.description
+
+        let range = NSRange(location: 0, length: againstAsString.count)
         var options: NSRegularExpression.MatchingOptions = []
         
         if global == false {
             options.insert(.anchored)
         }
         
-        return regex.numberOfMatches(in: against.description, options: options, range: range) > 0
+        return regex.numberOfMatches(in: againstAsString, options: options, range: range) > 0
     }
 }
 

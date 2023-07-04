@@ -15,6 +15,11 @@ extension QueryPart {
     @inlinable @inline(__always)
     public func exportTo(hitch: Hitch) -> Hitch {
         switch type {
+        case .subquery:
+            if let subquery = subquery {
+                subquery.exportTo(hitch: hitch)
+            }
+            break
         case .string:
             hitch.append(.doubleQuote)
             if let value = value {
@@ -89,14 +94,16 @@ extension QueryPart {
             hitch.append(.doubleQuote)
             break
         case .repeat:
-            hitch.append(.doubleQuote)
-            hitch.append(partRepeat)
-            hitch.append(.doubleQuote)
+            if let subquery = subquery {
+                subquery.exportTo(first: partRepeat,
+                                  hitch: hitch)
+            }
             break
         case .repeatUntilStructure:
-            hitch.append(.doubleQuote)
-            hitch.append(partRepeatUntilStructure)
-            hitch.append(.doubleQuote)
+            if let subquery = subquery {
+                subquery.exportTo(first: partRepeatUntilStructure,
+                                  hitch: hitch)
+            }
             break
         case .skip:
             hitch.append(.doubleQuote)
@@ -142,6 +149,28 @@ extension Query: CustomStringConvertible {
     @inlinable @inline(__always)
     public func exportTo(hitch: Hitch) -> Hitch {
         hitch.append(.openBrace)
+        for queryPart in queryParts {
+            queryPart.exportTo(hitch: hitch)
+        }
+        if hitch.last == .comma {
+            hitch.count -= 1
+        }
+        hitch.append(.closeBrace)
+        
+        return hitch
+    }
+    
+    @discardableResult
+    @inlinable @inline(__always)
+    public func exportTo(first: HalfHitch,
+                         hitch: Hitch) -> Hitch {
+        hitch.append(.openBrace)
+        
+        hitch.append(.doubleQuote)
+        hitch.append(first)
+        hitch.append(.doubleQuote)
+        hitch.append(.comma)
+        
         for queryPart in queryParts {
             queryPart.exportTo(hitch: hitch)
         }
