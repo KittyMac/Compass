@@ -81,6 +81,8 @@ public struct QueryPart {
     public let value: Hitch?
     public let regex: NSRegularExpression?
     
+    public let subquery: Query?
+    
     // Capture query parts have a key (the place to store the captured values),
     // a capture type (how to determine the value to capture) and
     // a validation key (a lookup to a ruleset which determines if this is
@@ -91,9 +93,23 @@ public struct QueryPart {
     public let captureValidationKey: Hitch?
         
     init?(element: JsonElement) {
-        // var queryPart = QueryPart(type: PartType, value: Hitch)
-        // capture group
+        // capture group or a subquery
         if element.type == .array {
+            if element[0] == partRepeat || element[0] == partRepeatUntilStructure {
+                // this is a subquery. Our part is set to the repeat and subquery is
+                // set to the rest of me
+                
+                self.type = element[0] == partRepeat ? .repeat : .repeatUntilStructure
+                self.value = nil
+                self.subquery = Query(element: element)
+                self.regex = nil
+                self.captureKey = nil
+                self.capturePartType = nil
+                self.capturePartRegex = nil
+                self.captureValidationKey = nil
+                return
+            }
+            
             guard element.count == 3 else {
                 Compass.print("Malformed query capture detected: \(element)")
                 return nil
@@ -124,6 +140,7 @@ public struct QueryPart {
             
             self.type = .capture
             self.value = capturePart.value
+            self.subquery = nil
             self.regex = capturePart.regex
             self.captureKey = captureKey
             self.capturePartType = capturePart.type
@@ -197,6 +214,7 @@ public struct QueryPart {
         
         self.type = queryPartType
         self.value = queryPartValue
+        self.subquery = nil
         self.regex = queryPartRegex
         self.captureKey = nil
         self.capturePartType = nil
@@ -223,6 +241,9 @@ public struct Query {
         var queryParts: [QueryPart] = []
         
         for elementPart in element.iterValues {
+            guard elementPart.halfHitchValue != partRepeat && elementPart.halfHitchValue != partRepeatUntilStructure else {
+                continue
+            }
             guard let queryPart = QueryPart(element: elementPart) else {
                 return nil
             }

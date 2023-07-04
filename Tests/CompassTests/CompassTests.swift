@@ -13,8 +13,6 @@ final class HitchTests: XCTestCase {
                 "line1",
                 "!--",
                 "*--",
-                "REPEAT",
-                "REPEAT_UNTIL_STRUCTURE",
                 "*",
                 "?",
                 "!*",
@@ -26,7 +24,7 @@ final class HitchTests: XCTestCase {
         ]
         """
         guard let compass = Compass(json: compassJson) else { XCTFail(); return }
-        XCTAssertEqual(compass.description, #"[["// simple match","line1","!--","*--","REPEAT","REPEAT_UNTIL_STRUCTURE","*","?","!*",".","DEBUG","/line(.*)/",["KEY","()","IsString"]]]"#)
+        XCTAssertEqual(compass.description, #"[["// simple match","line1","!--","*--","*","?","!*",".","DEBUG","/line(.*)/",["KEY","()","IsString"]]]"#)
     }
     
     func testSimpleMatch0() {
@@ -123,8 +121,10 @@ final class HitchTests: XCTestCase {
             "Wizard",
             "HP",
             "100",
-            "lorem ipsum",
-            "lorem ipsum",
+            "DESCRIPTION",
+            "Gandalf is a wizard and a member of the Istari, a group of angelic beings sent to Middle-earth in human form to aid the free peoples in their struggle against the forces of darkness.",
+            "He is known for his long grey robes, a wide-brimmed hat, and a staff.",
+            "In his initial appearance as Gandalf the Grey, he is depicted as a wise and mysterious figure with a deep knowledge of the world and a strong connection to nature.",
             "-- character",
             "NAME",
             "Gimli",
@@ -135,8 +135,13 @@ final class HitchTests: XCTestCase {
             "Warrior",
             "HP",
             "500",
-            "lorem ipsum",
-            "lorem ipsum",
+            "DESCRIPTION",
+            "Gimli is the son of Gloin, one of the dwarves who accompanied Bilbo Baggins on his adventure in The Hobbit.",
+            "Like his father, Gimli is a skilled warrior and craftsman, known for his expertise in axe combat and his loyalty to his kin.",
+            "He hails from the city of Erebor, the Lonely Mountain, which was once home to a vast treasure and the dwarves' ancestral kingdom.",
+            "Gimli is chosen to represent the dwarves as a member of the Fellowship of the Ring.",
+            "Despite initial reservations and tensions between dwarves and elves, Gimli forms an unlikely friendship with Legolas, an elf, during their quest.",
+            "Together, they face numerous perils and challenges while journeying through Middle-earth.",
             "-- character",
             "NAME",
             "Legolas",
@@ -147,6 +152,10 @@ final class HitchTests: XCTestCase {
             "Elf",
             "HP",
             "-1000",
+            "DESCRIPTION",
+            "Legolas is a prince of the Woodland Realm of Mirkwood and the son of Thranduil, the Elvenking.",
+            "He is described as being fair, graceful, and possessing keen senses.",
+            "Legolas is known for his exceptional archery skills, often displaying great accuracy and agility with his bow and arrows."
         ]
         """
         
@@ -173,6 +182,15 @@ final class HitchTests: XCTestCase {
                 ],
                 "disallow": []
             },
+            {
+                "validation": "isStory",
+                "allow": [
+                    "/.*/"
+                ],
+                "disallow": [
+                    "/(NAME|CLASS|HP|DESCRIPTION)/"
+                ]
+            },
             [
                 "// Fantasy Characters",
                 "NAME",
@@ -182,14 +200,41 @@ final class HitchTests: XCTestCase {
                 ["CLASS", "()", "isClass"],
                 "HP",
                 ["HITPOINTS", "()", "isHitPoints"],
+                "DESCRIPTION",
+                [
+                    "REPEAT",
+                    ["STORY", "()", "isStory"]
+                ],
+                "^--"
             ]
         ]
         """
         
         // Note: Legolas will not be matched because -1000 is not valid hitpoints
         let expectedMatches = ^[
-            ["NAME": ["Gandlaf"], "CLASS": ["Wizard"], "HITPOINTS": ["100"] ],
-            ["NAME": ["Gimli"], "CLASS": ["Warrior"], "HITPOINTS": ["500"] ]
+            [
+                "NAME": ["Gandlaf"],
+                "CLASS": ["Wizard"],
+                "HITPOINTS": ["100"],
+                "STORY": [
+                    "Gandalf is a wizard and a member of the Istari, a group of angelic beings sent to Middle-earth in human form to aid the free peoples in their struggle against the forces of darkness.",
+                    "He is known for his long grey robes, a wide-brimmed hat, and a staff.",
+                    "In his initial appearance as Gandalf the Grey, he is depicted as a wise and mysterious figure with a deep knowledge of the world and a strong connection to nature."
+                ]
+            ],
+            [
+                "NAME": ["Gimli"],
+                "CLASS": ["Warrior"],
+                "HITPOINTS": ["500"],
+                "STORY": [
+                    "Gimli is the son of Gloin, one of the dwarves who accompanied Bilbo Baggins on his adventure in The Hobbit.",
+                    "Like his father, Gimli is a skilled warrior and craftsman, known for his expertise in axe combat and his loyalty to his kin.",
+                    "He hails from the city of Erebor, the Lonely Mountain, which was once home to a vast treasure and the dwarves' ancestral kingdom.",
+                    "Gimli is chosen to represent the dwarves as a member of the Fellowship of the Ring.",
+                    "Despite initial reservations and tensions between dwarves and elves, Gimli forms an unlikely friendship with Legolas, an elf, during their quest.",
+                    "Together, they face numerous perils and challenges while journeying through Middle-earth."
+                ]
+            ]
         ]
 
         guard let compass = Compass(json: compassJson) else { XCTFail(); return }
