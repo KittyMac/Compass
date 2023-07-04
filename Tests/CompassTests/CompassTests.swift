@@ -198,6 +198,7 @@ final class HitchTests: XCTestCase {
         
         let compassJson = #"""
         [
+            "// Validations",
             {
                 "validation": "isClass",
                 "allow": [
@@ -226,6 +227,8 @@ final class HitchTests: XCTestCase {
                     /(NAME|CLASS|HP|DESCRIPTION)/
                 ]
             },
+        
+            "// Matches",
             [
                 "// Book Title",
                 ["TITLE", /Title: ([\.\w\s]+)/, "isName"]
@@ -238,7 +241,9 @@ final class HitchTests: XCTestCase {
                 "// Fantasy Characters",
                 "NAME",
                 ["NAME", "()", "isName"],
-                "*--",
+                "-- img --",
+                ["IMAGE", /-- (.*) --/, "."],
+                "^--",
                 "CLASS",
                 ["CLASS", "()", "isClass"],
                 "HP",
@@ -262,6 +267,7 @@ final class HitchTests: XCTestCase {
             ],
             [
                 "NAME": ["Gandlaf"],
+                "IMAGE": ["http://www.lotr.com/gandalf.png"],
                 "CLASS": ["Wizard"],
                 "HITPOINTS": ["100"],
                 "STORY": [
@@ -272,6 +278,7 @@ final class HitchTests: XCTestCase {
             ],
             [
                 "NAME": ["Gimli"],
+                "IMAGE": ["http://www.lotr.com/gimli.png"],
                 "CLASS": ["Warrior"],
                 "HITPOINTS": ["500"],
                 "STORY": [
