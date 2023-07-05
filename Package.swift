@@ -8,7 +8,6 @@ let package = Package(
         .library(name: "Compass", targets: ["Compass"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/KittyMac/Chronometer.git", from: "0.1.0"),
         .package(url: "https://github.com/KittyMac/Hitch.git", from: "0.4.0"),
         .package(url: "https://github.com/KittyMac/Spanker.git", from: "0.2.0"),
     ],
@@ -17,8 +16,7 @@ let package = Package(
             name: "Compass",
             dependencies: [
                 "Hitch",
-                "Spanker",
-                "Chronometer"
+                "Spanker"
             ]),
         .testTarget(
             name: "CompassTests",

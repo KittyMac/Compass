@@ -11,7 +11,7 @@ RUN export DEBIAN_FRONTEND=noninteractive DEBCONF_NONINTERACTIVE_SEEN=true && ap
 RUN rm -rf /var/lib/apt/lists/*
 
 
-WORKDIR /root/Hitch
+WORKDIR /root/Compass
 COPY ./Makefile ./Makefile
 COPY ./Package.swift ./Package.swift
 COPY ./Sources ./Sources
