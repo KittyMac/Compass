@@ -46,6 +46,7 @@ public final class Compass {
             }
             if queryElement.type == .array,
                let query = Query(element: queryElement,
+                                 requireComment: true,
                                  compass: self) {
                 queries.append(query)
                 continue

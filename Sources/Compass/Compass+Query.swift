@@ -129,6 +129,7 @@ public struct QueryPart {
                 self.type = provisionalType
                 self.value = nil
                 self.subquery = Query(element: element,
+                                      requireComment: false,
                                       compass: compass)
                 self.regex = nil
                 self.captureKey = nil
@@ -270,6 +271,7 @@ public struct Query {
     public let minimumPartsCount: Int
         
     init?(element: JsonElement,
+          requireComment: Bool,
           compass: Compass) {
         guard element.type == .array else {
             Compass.print("Unexpected query item detected: \(element)")
@@ -277,6 +279,13 @@ public struct Query {
         }
         
         var queryParts: [QueryPart] = []
+        
+        if requireComment,
+           let first: JsonElement = element[0],
+           first.halfHitchValue?.starts(with: "//") != true {
+            Compass.print("Queries are required to start with a comment: \(element)")
+            return nil
+        }
         
         for elementPart in element.iterValues {
             guard elementPart.halfHitchValue != partRepeat && elementPart.halfHitchValue != partRepeatUntilStructure else {
