@@ -12,6 +12,7 @@ extension QueryPart: CustomStringConvertible {
 
 extension QueryPart {
     @discardableResult
+    @inlinable
     public func exportTo(hitch: Hitch) -> Hitch {
         switch type {
         case .subquery:
@@ -145,6 +146,7 @@ extension Query: CustomStringConvertible {
     }
     
     @discardableResult
+    @inlinable
     public func exportTo(hitch: Hitch) -> Hitch {
         hitch.append(.openBrace)
         for queryPart in queryParts {
@@ -159,6 +161,7 @@ extension Query: CustomStringConvertible {
     }
     
     @discardableResult
+    @inlinable
     public func exportTo(first: HalfHitch,
                          hitch: Hitch) -> Hitch {
         hitch.append(.openBrace)
@@ -189,6 +192,7 @@ extension Compass: CustomStringConvertible {
     }
     
     @discardableResult
+    @inlinable
     public func exportTo(hitch: Hitch) -> Hitch {
         hitch.append(.openBrace)
         for query in queries {

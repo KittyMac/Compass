@@ -4,7 +4,7 @@ import Spanker
 
 extension Query {
     
-    @inlinable @inline(__always)
+    @inlinable
     func capture(key: Hitch,
                  value: Hitch,
                  matches: JsonElement) {
@@ -16,7 +16,7 @@ extension Query {
     }
         
     @discardableResult
-    @inlinable @inline(__always)
+    @inlinable
     func match(compass: Compass,
                root: JsonElement,
                rootIdx: inout Int,
@@ -78,7 +78,7 @@ extension Query {
     }
     
     @discardableResult
-    @inlinable @inline(__always)
+    @inlinable
     func match(compass: Compass,
                queryPart: QueryPart,
                nextQueryPart: QueryPart?,

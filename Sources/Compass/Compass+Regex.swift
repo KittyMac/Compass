@@ -110,6 +110,7 @@ extension CompassRegex: CustomStringConvertible {
     }
     
     @discardableResult
+    @inlinable
     public func exportTo(hitch: Hitch) -> Hitch {
         hitch.append(.forwardSlash)
         hitch.append(regex.pattern)

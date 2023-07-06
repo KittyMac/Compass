@@ -65,6 +65,8 @@ final class HitchTests: XCTestCase {
         
         guard let matches = compass.matches(against: sourceJson) else { XCTFail(); return }
         
+        print(expectedMatches.sortKeys())
+        
         XCTAssertEqual(matches.sortKeys().description, expectedMatches.sortKeys().description)
     }
     
