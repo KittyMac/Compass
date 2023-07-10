@@ -111,7 +111,7 @@ public struct QueryPart {
                let type2 = element[2]?.type,
                type0 == .string,
                type1 == .string || type1 == .regex,
-               type2 == .string {
+               type2 == .string || type2 == .null {
                 isCaptureGroup = true
             }
             
@@ -148,10 +148,9 @@ public struct QueryPart {
                 Compass.print("Malformed query capture detected (capture key is not a string): \(element)")
                 return nil
             }
-            guard let validationKey: Hitch = element[2] else {
-                Compass.print("Malformed query capture detected (validation key is not a string): \(element)")
-                return nil
-            }
+            
+            let validationKey: Hitch = element[2] ?? "."
+                
             guard let capturePartElement: JsonElement = element[1] else {
                 Compass.print("Malformed query capture detected (failure to extract capture part): \(element)")
                 return nil
