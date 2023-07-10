@@ -89,7 +89,7 @@ final class HitchTests: XCTestCase {
         [
             {
                 "validation": "isCat",
-                "allow": [
+                "allowAny": [
                     /CAT\d+/,
                     /KITTEN\d+/
                 ],
@@ -216,21 +216,21 @@ final class HitchTests: XCTestCase {
             "// Validations",
             {
                 "validation": "isClass",
-                "allow": [
+                "allowAny": [
                     /(Wizard|Warrior|Elf|Rogue|Hobbit)/
                 ],
                 "disallow": []
             },
             {
                 "validation": "isName",
-                "allow": [
+                "allowAny": [
                     /[\.\w\s]+/
                 ],
                 "disallow": []
             },
             {
                 "validation": "isStory",
-                "allow": [],
+                "allowAny": [],
                 "disallow": [
                     /(NAME|CLASS|HP|DESCRIPTION)/
                 ]
