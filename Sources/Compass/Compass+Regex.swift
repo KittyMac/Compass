@@ -130,7 +130,7 @@ extension CompassRegex: CustomStringConvertible {
 
 internal var regexCache: [Hitch: CompassRegex] = [:]
 internal var regexCacheLock = NSLock()
-internal func parseRegex(_ pattern: Hitch) -> CompassRegex? {
+internal func parseRegex(_ pattern: HalfHitch) -> CompassRegex? {
     guard pattern.first == .forwardSlash else { return nil }
     
     // regex supports igm flags
@@ -180,15 +180,48 @@ internal func parseRegex(_ pattern: Hitch) -> CompassRegex? {
     
     return nil
 }
+
 internal func getCachedRegex(_ pattern: Hitch) -> CompassRegex? {
     regexCacheLock.lock(); defer { regexCacheLock.unlock() }
         
     guard let regex = regexCache[pattern] else {
-        guard let regex = parseRegex(pattern) else {
+        guard let regex = parseRegex(pattern.halfhitch()) else {
             return nil
         }
         regexCache[pattern] = regex
         return regex
     }
     return regex
+}
+
+internal func isRegex(_ pattern: HalfHitch) -> Bool {
+    guard pattern.first == .forwardSlash else { return false }
+    
+    // regex supports igm flags
+    let flags: HalfHitch = "igm"
+    let count = pattern.count
+    if pattern.last == .forwardSlash {
+        return true
+    }
+    
+    if count-2 > 0 &&
+        pattern[count-2] == .forwardSlash &&
+        flags.contains(pattern[count-1]) {
+        return true
+    }
+    if count-3 > 0 &&
+        pattern[count-3] == .forwardSlash &&
+        flags.contains(pattern[count-1]) &&
+        flags.contains(pattern[count-2]) {
+        return true
+    }
+    if count-4 > 0 &&
+        pattern[count-4] == .forwardSlash &&
+        flags.contains(pattern[count-1]) &&
+        flags.contains(pattern[count-2]) &&
+        flags.contains(pattern[count-3]) {
+        return true
+    }
+    
+    return false
 }

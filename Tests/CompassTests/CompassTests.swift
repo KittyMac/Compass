@@ -128,7 +128,7 @@ final class HitchTests: XCTestCase {
         [
             [
                 "// capture the name of all structures",
-                ["STRUCTURE", /-- (\w+) --/i, "."],
+                ["STRUCTURE", "/-- (\w+) --/i", "."],
             ]
         ]
         """#

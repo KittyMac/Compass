@@ -194,7 +194,7 @@ public struct QueryPart {
         if element.type == .string,
            let value = element.halfHitchValue {
             
-            if value.first == .forwardSlash && value.last == .forwardSlash {
+            if isRegex(value) {
                 queryPartType = .regex
                 queryPartRegex = getCachedRegex(value.hitch())
                 if queryPartRegex == nil {
