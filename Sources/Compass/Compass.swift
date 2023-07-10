@@ -16,52 +16,66 @@ public final class Compass {
     
     public var customValidations: [Hitch: CompassValidation] = [:]
     
-    public init?(queries root: JsonElement) {
+    public init?(validations validationsRoot: JsonElement,
+                 queries queriesRoot: JsonElement) {
         // Note: the memory used by element will be deallocated after this call, so it it
         // important to not rely on the contents of element for persistance
         //
         // Note: element is expected to be an array of queries
         //
         
-        guard root.type == .array else { return nil }
+        guard validationsRoot.type == .array else { return nil }
+        guard queriesRoot.type == .array else { return nil }
         
-        for queryElement in root.iterValues {
-            if queryElement.type == .string && queryElement.halfHitchValue?.starts(with: "//") == true {
+        for element in validationsRoot.iterValues {
+            if element.type == .string && element.halfHitchValue?.starts(with: "//") == true {
                 continue
             }
-            if queryElement.type == .dictionary {
-                if let validation = Validation(element: queryElement,
+            if element.type == .dictionary {
+                if let validation = Validation(element: element,
                                                compass: self) {
                     validations[validation.name] = validation
                     continue
                 }
-                if let definition = Definition(element: queryElement,
+                if let definition = Definition(element: element,
                                                compass: self) {
                     definitions[definition.name] = definition
                     continue
                 }
                 
-                Compass.print("Malformed object at query level (should this be a Validation or a Definition?): \(queryElement)")
+                Compass.print("Malformed object at query level (should this be a Validation or a Definition?): \(element)")
                 return nil
             }
-            if queryElement.type == .array,
-               let query = Query(element: queryElement,
+        }
+        
+        for element in queriesRoot.iterValues {
+            if element.type == .string && element.halfHitchValue?.starts(with: "//") == true {
+                continue
+            }
+            if element.type == .array,
+               let query = Query(element: element,
                                  requireComment: true,
                                  compass: self) {
                 queries.append(query)
                 continue
             }
-            
-            Compass.print("Failed to process query: \(queryElement)")
-            return nil
         }
         
         validations["."] = Validation(element: ^["validation":".","allow":[],"disallow":[]], compass: self)
     }
     
+    public convenience init?(validations: HalfHitch,
+                             queries: HalfHitch) {
+        guard let validationsRoot = Spanker.parse(halfhitch: validations) else { return nil }
+        guard let queriesRoot = Spanker.parse(halfhitch: queries) else { return nil }
+        self.init(validations: validationsRoot,
+                  queries: queriesRoot)
+    }
+    
     public convenience init?(json: HalfHitch) {
         guard let root = Spanker.parse(halfhitch: json) else { return nil }
-        self.init(queries: root)
+        self.init(validations: root,
+                  queries: root)
     }
     
     public convenience init?(json: Hitch) {
