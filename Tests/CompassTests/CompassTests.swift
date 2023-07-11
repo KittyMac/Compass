@@ -4,7 +4,7 @@ import Compass
 import Spanker
 import Hitch
 
-final class HitchTests: XCTestCase {
+final class CompassTests: XCTestCase {
     
     func testCompile() {
         let compassJson = #"""

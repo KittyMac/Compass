@@ -162,7 +162,7 @@ public struct QueryPart {
             }
             guard capturePart.type == .regex ||
                     capturePart.type == .captureString ||
-                    capturePart.type == .string else {
+                    capturePart.type == .any else {
                 Compass.print("Malformed query capture detected (capture part is not regex, \"()\" or \".\"): \(element)")
                 return nil
             }

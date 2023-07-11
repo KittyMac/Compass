@@ -270,10 +270,12 @@ extension Query {
                 return false
             }
             
-            if capturePartType == .captureString {
+            if capturePartType == .captureString ||
+                capturePartType == .any {
+                let label = capturePartType == .captureString ? "ANY CAPTURE" : "SKIP CAPTURE"
                 // We capture the whole string, whatever it is, from the root element
                 if let result = validation.test(rootValue) {
-                    if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] ANY CAPTURE: [\(captureKey)] \(rootValue)") }
+                    if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] \(label): [\(captureKey)] \(result)") }
                     capture(key: captureKey,
                             value: result,
                             matches: localMatch)
@@ -281,20 +283,9 @@ extension Query {
                     if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] FAILED VALIDATION \(validation.name): [\(captureKey)] \(rootValue)") }
                     return false
                 }
-                lastCaptureIdx = localRootIdx
-                localRootIdx += 1
-                return true
-            } else if capturePartType == .string,
-                      let stringValue = queryPart.value {
-                // We capture the whole string, whatever it is, from the capture query
-                if let result = validation.test(stringValue.halfhitch()) {
-                    if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] STATIC CAPTURE: [\(captureKey)] \(stringValue)") }
-                    capture(key: captureKey,
-                            value: result,
-                            matches: localMatch)
-                } else {
-                    if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] FAILED VALIDATION \(validation.name): [\(captureKey)] \(stringValue)") }
-                    return false
+                if capturePartType == .captureString {
+                    lastCaptureIdx = localRootIdx
+                    localRootIdx += 1
                 }
                 return true
             } else if capturePartType == .regex,

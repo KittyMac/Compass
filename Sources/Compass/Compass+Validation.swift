@@ -25,6 +25,7 @@ import Spanker
 
 public struct Validation {
     public let name: Hitch
+    public let `default`: Hitch?
     public var allowsAll: [CompassRegex]
     public var allowsAny: [CompassRegex]
     public var disallows: [CompassRegex]
@@ -45,6 +46,8 @@ public struct Validation {
             return nil
         }
         self.name = name
+        
+        self.default = element["default"]
         
         if let allowAny: JsonElement = element["allowAny"],
            allowAny.type == .array {
@@ -114,6 +117,10 @@ public struct Validation {
     
     @usableFromInline
     func remove(_ value: Hitch) -> Hitch {
+        if let value = self.default {
+            return value
+        }
+        
         for regex in removes {
             regex.remove(from: value)
         }
