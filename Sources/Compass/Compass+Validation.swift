@@ -129,6 +129,12 @@ public struct Validation {
     
     @usableFromInline
     func test(_ value: HalfHitch) -> Hitch? {
+        if value.count >= 2 &&
+            value[0] == .minus &&
+            value[1] == .minus {
+            return nil
+        }
+        
         guard name != "." else {
             return remove(value.hitch())
         }

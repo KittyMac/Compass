@@ -113,6 +113,11 @@ extension Query {
             }
             break
             
+        case .any:
+            if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] SKIP ONE: \(rootValue)") }
+            localRootIdx += 1
+            break
+            
         case .skipStructure:
             while rootValue.starts(with: "-- ") {
                 localRootIdx += 1
@@ -328,7 +333,6 @@ extension Query {
         case .skip:
         case .skipOne:
         case .skipAll:
-        case .any:
             */
         }
         
