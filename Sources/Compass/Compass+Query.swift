@@ -268,6 +268,7 @@ public struct QueryPart {
 public struct Query {
     public let queryParts: [QueryPart]
     public let minimumPartsCount: Int
+    public var captureKeys: [Hitch]
         
     init?(element: JsonElement,
           requireComment: Bool,
@@ -278,6 +279,7 @@ public struct Query {
         }
         
         var queryParts: [QueryPart] = []
+        var captureKeys: [Hitch] = []
         
         if requireComment,
            let first: JsonElement = element[0],
@@ -294,6 +296,14 @@ public struct Query {
                                             compass: compass) else {
                 return nil
             }
+                        
+            if let captureKey = queryPart.captureKey {
+                captureKeys.append(captureKey)
+            }
+            if let subqueryKeys = queryPart.subquery?.captureKeys {
+                captureKeys.append(contentsOf: subqueryKeys)
+            }
+            
             queryParts.append(queryPart)
         }
         
@@ -312,5 +322,21 @@ public struct Query {
         
         self.minimumPartsCount = count
         self.queryParts = queryParts
+        self.captureKeys = captureKeys
+    }
+    
+    func isFinished(matches: JsonElement) -> Bool {
+        guard captureKeys.count > 0 else { return false }
+        
+        // returns true if all of our captureKeys have already been found
+        for match in matches.iterValues {
+            for captureKey in captureKeys {
+                if match.contains(key: captureKey) == false {
+                    return false
+                }
+            }
+        }
+        
+        return true
     }
 }

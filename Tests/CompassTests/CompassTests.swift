@@ -339,6 +339,12 @@ final class HitchTests: XCTestCase {
                 
         guard let compass = Compass(json: compassJson) else { XCTFail(); return }
         
+        // var options = XCTMeasureOptions()
+        // options.iterationCount = 10000
+        // measure(options: options) {
+        //     compass.matches(against: sourceJson)
+        // }
+        
         guard let matches = compass.matches(against: sourceJson) else { XCTFail(); return }
         
         XCTAssertEqual(matches.sortKeys().description, Spanker.parse(halfhitch: resultsJson.halfhitch())!.description)

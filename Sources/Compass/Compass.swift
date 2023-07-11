@@ -101,7 +101,8 @@ public final class Compass {
     }
     
     public func matches(against: JsonElement) -> JsonElement? {
-        return matches(against: against, queries: queries)
+        return matches(against: against,
+                       queries: queries)
     }
     
     public func matches(against: HalfHitch) -> JsonElement? {

@@ -3,6 +3,7 @@ import Hitch
 import Spanker
 
 public struct CompassRegex {
+    public let uniqueId: String
     public let regex: NSRegularExpression
     public let ignoreCase: Bool
     public let global: Bool
@@ -13,6 +14,7 @@ public struct CompassRegex {
                  global: Bool,
                  multiline: Bool) {
         
+        self.uniqueId = UUID().uuidString
         self.ignoreCase = ignoreCase
         self.global = global
         self.multiline = multiline
@@ -31,7 +33,7 @@ public struct CompassRegex {
     }
     
     public func matches(against: HalfHitch) -> [HalfHitch] {
-        let againstAsString = against.description
+        let againstAsString = against.toTempString()
         
         let range = NSRange(location: 0, length: againstAsString.count)
         var options: NSRegularExpression.MatchingOptions = []
@@ -61,7 +63,7 @@ public struct CompassRegex {
     }
     
     public func remove(from: Hitch) {
-        var againstAsString = from.description
+        var againstAsString = from.toTempString()
                         
         while true {
             let range = NSRange(location: 0, length: againstAsString.count)
@@ -88,8 +90,9 @@ public struct CompassRegex {
         from.replace(with: againstAsString)
     }
     
+    @inlinable @inline(__always)
     public func test(against: HalfHitch) -> Bool {
-        let againstAsString = against.description
+        let againstAsString = against.toTempString()
 
         let range = NSRange(location: 0, length: againstAsString.count)
         var options: NSRegularExpression.MatchingOptions = []

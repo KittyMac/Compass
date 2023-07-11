@@ -22,7 +22,8 @@ extension Query {
                rootIdx: inout Int,
                debug: inout Bool,
                indent: Int,
-               matches: JsonElement) -> Bool {
+               matches: JsonElement,
+               rootCache: RootCache) -> Bool {
         guard rootIdx + minimumPartsCount <= root.count else {
             // Compass.print("Skipping query because \(rootIdx + minimumPartsCount) > \(root.count)")
             return false
@@ -60,7 +61,8 @@ extension Query {
                      lastCaptureIdx: &lastCaptureIdx,
                      debug: &debug,
                      indent: indent,
-                     localMatch: localMatch) == false {
+                     localMatch: localMatch,
+                     rootCache: rootCache) == false {
                 return false
             }
         }
@@ -87,7 +89,8 @@ extension Query {
                lastCaptureIdx: inout Int,
                debug: inout Bool,
                indent: Int,
-               localMatch: JsonElement) -> Bool {
+               localMatch: JsonElement,
+               rootCache: RootCache) -> Bool {
         guard localRootIdx < root.count else { return false }
         
         guard var rootValue = root[localRootIdx]?.halfHitchValue else {
@@ -159,7 +162,8 @@ extension Query {
                              lastCaptureIdx: &nextPartCaptureIdx,
                              debug: &nextPartNoDebug,
                              indent: indent + 1,
-                             localMatch: nextPartMatches) {
+                             localMatch: nextPartMatches,
+                             rootCache: rootCache) {
                         break
                     }
                 }
@@ -171,7 +175,8 @@ extension Query {
                                   rootIdx: &localRootIdx,
                                   debug: &debug,
                                   indent: indent + 1,
-                                  matches: subqueryMatches) {
+                                  matches: subqueryMatches,
+                                  rootCache: rootCache) {
                     lastCaptureIdx = localRootIdx
                     localRootIdx += 1
                     if shouldRepeat {
@@ -205,7 +210,9 @@ extension Query {
                 Compass.print("Malformed query part with missing regex encountered: \(self)")
                 return false
             }
-            guard queryRegex.test(against: rootValue) else {
+            guard rootCache.test(regex: queryRegex,
+                                 index: localRootIdx,
+                                 value: rootValue) else {
                 if debug { Compass.print(indent: indent, tag: "DEBUG", "[\(localRootIdx)] failed regex match \(queryRegex) against \(rootValue)") }
                 return false
             }
@@ -293,7 +300,9 @@ extension Query {
             } else if capturePartType == .regex,
                       let regex = queryPart.regex {
                 
-                let matches = regex.matches(against: rootValue)
+                let matches = rootCache.matches(regex: regex,
+                                                index: localRootIdx,
+                                                value: rootValue)
                 if matches.count > 0 {
                     for match in matches {
                         // We capture the whole string, whatever it is, from the capture query
@@ -355,8 +364,11 @@ extension Compass {
         // compass regex and the value is a array of all matches found.
         let matches = ^[]
         
+        let rootCache = RootCache()
+        var localQueries = queries
+
         var rootIdx = 0
-        while rootIdx < root.count {
+        while rootIdx < root.count && localQueries.count > 0 {
             for query in queries {
                 var debug = false
                 if query.match(compass: self,
@@ -364,7 +376,13 @@ extension Compass {
                                rootIdx: &rootIdx,
                                debug: &debug,
                                indent: 0,
-                               matches: matches) {
+                               matches: matches,
+                               rootCache: rootCache) {
+                    
+                    // localQueries = localQueries.filter { query in
+                    //     query.isFinished(matches: matches) == false
+                    // }
+                    
                     break
                 }
             }
